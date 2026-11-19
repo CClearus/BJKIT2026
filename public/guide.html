@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Competition C Compiler</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --text: #1d1d1f;
+    --muted: #5f6368;
+    --border: #e2e2de;
+    --accent: #2f6fdb;
+    --accent-soft: #e6eefc;
+    --code-bg: #f0f0ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416;
+      --surface: #1c1c1f;
+      --text: #ececec;
+      --muted: #a0a0a8;
+      --border: #2e2e33;
+      --accent: #7aa7ff;
+      --accent-soft: #1f2a40;
+      --code-bg: #26262b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416;
+    --surface: #1c1c1f;
+    --text: #ececec;
+    --muted: #a0a0a8;
+    --border: #2e2e33;
+    --accent: #7aa7ff;
+    --accent-soft: #1f2a40;
+    --code-bg: #26262b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 1.25rem; margin: 40px 0 12px; }
+  p { margin: 0 0 12px; }
+  .lead { color: var(--muted); font-size: 1.1rem; margin-bottom: 28px; }
+  .answer {
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .answer strong { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.9rem;
+    margin: 0 0 16px;
+  }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  p code, li code, td code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+  ul { padding-left: 20px; margin: 0 0 12px; }
+  li { margin-bottom: 6px; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Which C compiler do programming competitions use?</h1>
+  <p class="lead">A short guide for competitive programming and olympiads. <a href="index.html" style="color:var(--accent)">Try the online compiler →</a></p>
+
+  <div class="answer">
+    <strong>GCC (GNU Compiler Collection)</strong>
+    GCC is the standard C compiler in competitive programming. Most contest judges run it on Linux, so practise with GCC to get the same behaviour as the judge.
+  </div>
+
+  <h2>Who uses GCC</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Contest / judge</th><th>C compiler</th></tr></thead>
+      <tbody>
+        <tr><td>IOI (International Olympiad in Informatics)</td><td>GCC</td></tr>
+        <tr><td>ICPC (International Collegiate Programming Contest)</td><td>GCC</td></tr>
+        <tr><td>TOI (Thailand Olympiad in Informatics)</td><td>GCC</td></tr>
+        <tr><td>Codeforces</td><td>GNU GCC (also offers others)</td></tr>
+        <tr><td>AtCoder</td><td>GCC (also offers Clang)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin-top:8px">Exact versions change from year to year. Check each contest's rules page for the current version and flags.</p>
+
+  <h2>A typical compile command</h2>
+  <pre><code>gcc -std=c11 -O2 -Wall main.c -o main -lm
+./main &lt; input.txt</code></pre>
+  <ul>
+    <li><code>-std=c11</code>: use the C11 standard (some judges use <code>gnu11</code> or newer).</li>
+    <li><code>-O2</code>: turn on optimisation, as most judges do.</li>
+    <li><code>-Wall</code>: show warnings. It catches many bugs before you submit.</li>
+    <li><code>-lm</code>: link the math library (needed for <code>sqrt</code>, <code>pow</code> and others).</li>
+  </ul>
+
+  <h2>Installing GCC</h2>
+  <p><strong>Windows:</strong> install MSYS2, then in the MSYS2 UCRT64 terminal run:</p>
+  <pre><code>pacman -S mingw-w64-ucrt-x86_64-gcc</code></pre>
+  <p><strong>Ubuntu / Debian Linux:</strong></p>
+  <pre><code>sudo apt install build-essential</code></pre>
+  <p><strong>macOS:</strong> the built-in <code>gcc</code> command is really Clang. To get real GCC, run <code>brew install gcc</code> and use the versioned command it installs (for example <code>gcc-14</code>).</p>
+
+  <h2>Starter template</h2>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(void) {
+    int n;
+    long long sum = 0;
+    scanf("%d", &amp;n);
+    for (int i = 0; i &lt; n; i++) {
+        long long x;
+        scanf("%lld", &amp;x);
+        sum += x;
+    }
+    printf("%lld\n", sum);
+    return 0;
+}</code></pre>
+
+  <h2>Tips</h2>
+  <ul>
+    <li>Use <code>scanf</code> / <code>printf</code> for fast input and output.</li>
+    <li>Use <code>long long</code> with <code>%lld</code> when values can go past about 2 billion.</li>
+    <li>GCC has handy built-ins such as <code>__builtin_popcount(x)</code> (count set bits) and <code>__builtin_clz(x)</code> (count leading zeros).</li>
+    <li>Other compilers exist (Clang, MSVC), but they can behave differently from the judge. Stick with GCC to avoid surprises.</li>
+  </ul>
+</main>
+</body>
+</html>

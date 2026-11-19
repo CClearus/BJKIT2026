@@ -1,0 +1,66 @@
+/* CodeMirror "pastel" theme, smooth caret and selection animations. */
+.cm-s-pastel.CodeMirror {
+  font-family: var(--font-mono); font-size: 14px; line-height: 1.6;
+  background: var(--code-bg); color: var(--syn-text);
+}
+.cm-s-pastel .CodeMirror-gutters { background: var(--code-bg); border-right: 1px solid var(--border); }
+.cm-s-pastel .CodeMirror-linenumber { color: var(--muted); opacity: .6; transition: opacity .15s, color .15s; }
+.cm-s-pastel .CodeMirror-activeline-gutter .CodeMirror-linenumber { color: var(--accent); opacity: 1; }
+.cm-s-pastel .CodeMirror-activeline-background { background: var(--activeline); }
+.cm-s-pastel .CodeMirror-cursor { border-left: 2px solid var(--caret); }
+
+/* order matters: later rules win when a token has several classes */
+.cm-s-pastel .cm-fncall, .cm-s-pastel .cm-def { color: var(--syn-func); }
+.cm-s-pastel .cm-variable, .cm-s-pastel .cm-variable-2, .cm-s-pastel .cm-property, .cm-s-pastel .cm-qualifier { color: var(--syn-text); }
+.cm-s-pastel .cm-operator { color: var(--syn-operator); }
+.cm-s-pastel .cm-number, .cm-s-pastel .cm-atom { color: var(--syn-number); }
+.cm-s-pastel .cm-string, .cm-s-pastel .cm-string-2 { color: var(--syn-string); }
+.cm-s-pastel .cm-type, .cm-s-pastel .cm-variable-3, .cm-s-pastel .cm-builtin { color: var(--syn-type); }
+.cm-s-pastel .cm-keyword { color: var(--syn-keyword); font-weight: 500; }
+.cm-s-pastel .cm-meta { color: var(--syn-meta); }
+.cm-s-pastel .cm-comment { color: var(--syn-comment); font-style: italic; }
+
+/* selection: soft pastel, rounded, fades in */
+.cm-s-pastel .CodeMirror-selected { background: var(--sel-blur); border-radius: 3px; }
+.cm-s-pastel.CodeMirror-focused .CodeMirror-selected { background: var(--sel); }
+.cm-s-pastel .CodeMirror-line::selection, .cm-s-pastel .CodeMirror-line > span::selection, .cm-s-pastel .CodeMirror-line > span > span::selection { background: var(--sel); }
+.sel-anim .CodeMirror-selected { animation: selIn .22s ease-out; }
+@keyframes selIn { from { opacity: 0; transform: scaleY(.6); } to { opacity: 1; transform: none; } }
+
+.cm-s-pastel .cm-matchhighlight {
+  background: var(--match); box-shadow: 0 0 0 1px var(--match-ring); border-radius: 3px;
+  animation: matchIn .25s ease-out;
+}
+@keyframes matchIn { from { box-shadow: 0 0 0 4px transparent; background: transparent; } }
+
+div.CodeMirror.cm-s-pastel span.CodeMirror-matchingbracket {
+  color: inherit; background: var(--bracket); box-shadow: 0 0 0 1px var(--bracket-ring); border-radius: 2px;
+}
+div.CodeMirror.cm-s-pastel span.CodeMirror-nonmatchingbracket { color: var(--err); text-decoration: underline wavy; }
+
+/* smooth animated caret */
+.has-smooth-caret:not(.multi-cursor) .CodeMirror-cursors { opacity: 0; }
+.smooth-caret {
+  position: absolute; left: 0; top: 0; width: 2px; z-index: 4; pointer-events: none;
+  transition: transform 110ms cubic-bezier(.22, .8, .32, 1), height 110ms ease;
+}
+.smooth-caret .blink { display: block; height: 100%; }
+.smooth-caret .blink.on { animation: caretBlink 1.1s ease-in-out .5s infinite; }
+.smooth-caret .bar {
+  display: block; height: 100%; border-radius: 2px;
+  background: var(--caret); box-shadow: 0 0 6px var(--caret-glow); transform-origin: center;
+}
+.smooth-caret .bar.pop { animation: caretPop .2s ease-out; }
+@keyframes caretBlink { 0%, 45% { opacity: 1; } 55%, 90% { opacity: .1; } 100% { opacity: 1; } }
+@keyframes caretPop { 0% { transform: scale(1.9, 1.15); box-shadow: 0 0 14px var(--caret-glow); } 100% { transform: none; } }
+.CodeMirror:not(.CodeMirror-focused) .smooth-caret, .multi-cursor .smooth-caret { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .smooth-caret, .smooth-caret * { transition: none !important; animation: none !important; }
+  .sel-anim .CodeMirror-selected, .cm-s-pastel .cm-matchhighlight { animation: none; }
+}
+
+/* locked #include lines at the top of an editor (grey, can't be edited) */
+.CodeMirror .cm-locked, .CodeMirror .cm-locked span { color: var(--muted) !important; font-style: normal; }
+.CodeMirror .locked-line { background: color-mix(in srgb, var(--muted) 9%, transparent); }
+.CodeMirror .locked-line + .CodeMirror-gutter-background, .CodeMirror-gutter-wrapper .locked-gutter { opacity: .6; }

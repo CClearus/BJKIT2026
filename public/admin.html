@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Problem Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;0,700;1,400&family=Sarabun:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="css/paper.css">
+<link rel="stylesheet" href="css/editor.css">
+<style>
+  body { display: flex; flex-direction: column; }
+  .topbar .tag { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 999px; }
+  .topbar select { max-width: min(40vw, 360px); font-weight: 600; }
+
+  /* login */
+  .login { max-width: 360px; margin: 14vh auto; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+  .login h1 { font-size: 1.2rem; margin: 0 0 4px; }
+  .login p { color: var(--muted); font-size: .9rem; margin: 0 0 16px; }
+  .login input { width: 100%; margin-bottom: 10px; }
+  .login button { width: 100%; }
+  .login .err { font-size: .88rem; min-height: 1.3em; margin: 0 0 6px; }
+
+  /* editor | preview */
+  .admin-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .form-pane, .preview-pane { min-height: 0; overflow: auto; padding: 18px 20px 40px; }
+  .form-pane { border-right: 1px solid var(--border); background: var(--surface-2); }
+  .pane-title { font-size: .76rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+
+  .fields { display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
+  .level-field { display: flex; flex-direction: column; gap: 6px; font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 14px; }
+  .num-hint { font-weight: 400; opacity: .8; }
+
+  /* difficulty picker */
+  .level-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mode-picker { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 999px; padding: 3px; background: var(--surface); width: fit-content; }
+  .mode-picker button { border: 0; border-radius: 999px; padding: 6px 14px; font-size: .84rem; font-weight: 600; color: var(--muted); background: transparent; }
+  .mode-picker button[aria-checked="true"] { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
+  .coop-only { display: none; }
+  .is-coop .coop-only { display: block; }
+  .coop-intro { font-size: .84rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; margin-bottom: 10px; }
+  .coop-intro b { color: var(--text); }
+  .code-label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+  .code-label .sb-file { font: 600 .8rem var(--font-mono); color: var(--accent); }
+  .code-input {
+    width: 100%; resize: vertical; font: 13px/1.55 var(--font-mono); tab-size: 4;
+    background: var(--code-bg); color: var(--syn-text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  }
+  .obj-head { font: 700 .74rem var(--font-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--pc); margin: 14px 0 2px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .role-title + .obj-head { border-top: 0; padding-top: 0; margin-top: 4px; }
+  .obj-head small { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); margin-left: 6px; }
+  .player-samples .sample { margin-bottom: 8px; }
+  .add-psample { margin-bottom: 4px; }
+  .code-box .CodeMirror { height: auto; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+  .code-box .CodeMirror-scroll { min-height: 110px; max-height: 420px; }
+  .code-box .CodeMirror-focused { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .helper-note { display: block; font-size: .74rem; color: var(--muted); margin: -2px 0 4px; }
+  .coop-only-inline { display: none; }
+  .is-coop .coop-only-inline { display: inline; }
+  .suite-picker { display: none; gap: 4px; margin-bottom: 10px; }
+  .is-coop .suite-picker { display: flex; }
+  .suite-picker button { border-radius: 999px; padding: 5px 12px; font-size: .82rem; font-weight: 600; color: var(--muted); }
+  .suite-picker button[aria-selected="true"] { color: var(--text); background: var(--accent-soft); border-color: var(--accent); }
+  .suite-picker button[data-suite="p1"][aria-selected="true"] { background: color-mix(in srgb, var(--p1) 15%, transparent); border-color: var(--p1); }
+  .suite-picker button[data-suite="p2"][aria-selected="true"] { background: color-mix(in srgb, var(--p2) 15%, transparent); border-color: var(--p2); }
+  .suite-picker .count { font-size: .7rem; background: var(--surface-2); border-radius: 999px; padding: 0 6px; margin-left: 3px; }
+  .roles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .role-col { --pc: var(--p1); border-top: 3px solid var(--pc); padding-top: 8px; min-width: 0; }
+  .role-col.pl2 { --pc: var(--p2); }
+  .role-title { font-weight: 700; color: var(--pc); margin-bottom: 6px; }
+  @media (max-width: 1400px) { .roles-grid { grid-template-columns: 1fr; } }
+  .lv-chip {
+    --chip: var(--accent);
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px;
+    background: var(--surface); font-size: .82rem; font-weight: 600; color: var(--muted);
+    transition: background-color .15s, border-color .15s, box-shadow .15s, transform .1s;
+  }
+  .lv-chip .stars { font-size: .95rem; }
+  .lv-chip:hover { border-color: var(--chip); }
+  .lv-chip[aria-checked="true"] {
+    border-color: var(--chip); color: var(--text);
+    background: color-mix(in srgb, var(--chip) 14%, var(--surface));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--chip) 18%, transparent);
+  }
+
+  /* math palette */
+  .rich-toolbar button.active { background: var(--accent-soft); color: var(--accent); }
+  .math-palette {
+    border-bottom: 1px solid var(--border); background: var(--surface); padding: 8px 10px 10px;
+    max-height: 260px; overflow: auto; animation: paletteIn .18s ease-out;
+  }
+  @keyframes paletteIn { from { opacity: 0; transform: translateY(-4px); } }
+  .mp-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; font-size: .78rem; color: var(--muted); }
+  .mp-top .spacer { flex: 1; }
+  .math-group { display: flex; align-items: flex-start; gap: 8px; margin: 5px 0; }
+  .mg-label { width: 92px; flex: none; font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding-top: 8px; }
+  .mg-items { display: flex; flex-wrap: wrap; gap: 4px; }
+  .math-btn {
+    min-width: 36px; height: 32px; padding: 0 8px; border: 1px solid var(--border); background: var(--surface-2);
+    border-radius: 7px; font-size: 14px; color: var(--paper-text);
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: border-color .12s, background-color .12s, transform .12s;
+  }
+  .math-btn:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
+  .math-btn .katex { font-size: 1em; }
+  .math-btn.wide { font-size: 13px; }
+  @media (max-width: 560px) { .math-group { flex-direction: column; gap: 2px; } .mg-label { padding-top: 0; } }
+  .fields.second { grid-template-columns: 1fr 1fr; margin-top: 12px; }
+  .authors { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .author-row { display: flex; gap: 6px; animation: popIn .2s ease-out; }
+  .author-row input { flex: 1; min-width: 0; }
+  .author-row button { padding: 6px 10px; }
+  label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--muted); }
+  label.f input, label.f select { font-weight: 400; color: var(--text); width: 100%; }
+  .unit { position: relative; }
+  .unit input { padding-right: 46px; }
+  .unit::after { content: attr(data-unit); position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .8rem; font-weight: 400; pointer-events: none; }
+
+  .block { margin-top: 22px; }
+  .block > .head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .block > .head h3 { margin: 0; font-size: .95rem; }
+  .block > .head small { color: var(--muted); font-size: .78rem; }
+
+  /* rich text editor */
+  .rich { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+  .rich:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .rich-toolbar { display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .rich-toolbar button { border: 1px solid transparent; background: transparent; padding: 3px 8px; min-width: 30px; font-size: .86rem; border-radius: 6px; }
+  .rich-toolbar button:hover { background: var(--accent-soft); border-color: transparent; }
+  .rich-toolbar .sep { width: 1px; background: var(--border); margin: 3px 4px; }
+  .rich-body {
+    min-height: 90px; max-height: 520px; overflow: auto; padding: 12px 14px; outline: none;
+    font-family: var(--font-paper); font-size: 16.5px; line-height: 1.65; color: var(--paper-text);
+  }
+  .rich-body.tall { min-height: 170px; }
+  .rich-body:empty::before { content: attr(data-placeholder); color: var(--muted); font-style: italic; pointer-events: none; }
+  .rich-body p { margin: 0 0 .6em; }
+  .rich-body ul, .rich-body ol { margin: 0 0 .6em; padding-left: 1.5em; }
+  .rich-body h3 { font-size: 1.05em; margin: .6em 0 .3em; }
+  .rich-body code { font-family: var(--font-mono); font-size: .85em; background: var(--sample-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+  .rich-body pre { font-family: var(--font-mono); font-size: .85em; background: var(--sample-bg); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; white-space: pre-wrap; }
+  .rich-body img { max-width: 100%; height: auto; cursor: pointer; border-radius: 3px; transition: outline-color .15s; outline: 2px solid transparent; outline-offset: 2px; }
+  .rich-body img:hover { outline-color: var(--accent-soft); }
+  .rich-body img.selected { outline-color: var(--accent); }
+  .rich.drag-over { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  /* image resize overlay */
+  .img-frame { position: fixed; z-index: 50; pointer-events: none; border: 1.5px dashed var(--accent); border-radius: 4px; display: none; }
+  .img-frame.show { display: block; }
+  .img-handle {
+    position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--surface); box-shadow: var(--shadow);
+    pointer-events: auto; cursor: nwse-resize; touch-action: none;
+  }
+  .img-size { position: absolute; right: 12px; bottom: 8px; font: 600 .72rem var(--font-ui); background: var(--text); color: var(--bg); padding: 2px 6px; border-radius: 4px; opacity: .85; }
+  .img-tools {
+    position: absolute; left: 0; top: -40px; display: flex; gap: 2px; padding: 3px; pointer-events: auto;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); white-space: nowrap;
+  }
+  .img-tools button { border: 0; background: transparent; padding: 3px 7px; font-size: .8rem; border-radius: 5px; }
+  .img-tools button:hover { background: var(--accent-soft); }
+  .img-tools .sep { width: 1px; background: var(--border); margin: 2px 3px; }
+
+  /* samples */
+  .sample { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 10px; margin-bottom: 10px; animation: popIn .2s ease-out; }
+  @keyframes popIn { from { opacity: 0; transform: translateY(-4px); } }
+  .sample .s-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: .82rem; font-weight: 600; color: var(--muted); }
+  .sample .s-head button { padding: 2px 8px; font-size: .8rem; }
+  .sample .s-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sample label { font-size: .74rem; color: var(--muted); font-weight: 600; display: block; margin-bottom: 3px; }
+  .sample textarea {
+    width: 100%; min-height: 80px; resize: vertical; font: 13px/1.5 var(--font-mono);
+    background: var(--code-bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px;
+  }
+
+  /* tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: -4px 0 18px; }
+  .tab { border: 0; background: transparent; border-radius: 8px 8px 0 0; padding: 8px 14px; color: var(--muted); font-weight: 600; position: relative; }
+  .tab:hover { color: var(--text); background: var(--accent-soft); }
+  .tab.active { color: var(--text); }
+  .tab.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 2px; animation: tabIn .2s ease-out; }
+  @keyframes tabIn { from { transform: scaleX(.3); opacity: 0; } }
+  .tab .count { font-size: .72rem; background: var(--accent-soft); color: var(--accent); padding: 1px 7px; border-radius: 999px; margin-left: 4px; }
+
+  /* test cases */
+  .tests-intro { font-size: .86rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+  .tests-intro b { color: var(--text); }
+  .tests-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tests-toolbar .spacer { flex: 1; }
+  .tests-drop { border-radius: 12px; transition: box-shadow .15s, background-color .15s; min-height: 80px; }
+  .tests-drop.drag-over { box-shadow: 0 0 0 2px var(--accent); background: var(--accent-soft); }
+  .tests-empty { color: var(--muted); text-align: center; padding: 28px 12px; border: 1px dashed var(--border); border-radius: 12px; font-size: .9rem; }
+  .test .s-head .t-size { font-weight: 400; margin-left: 6px; }
+  .test .s-head .t-btns { display: flex; gap: 4px; }
+  .big-field { font: 12px/1.5 var(--font-mono); background: var(--code-bg); border: 1px dashed var(--border); border-radius: 8px; padding: 8px; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+  .big-field .bf-note { display: block; font-family: var(--font-ui); font-size: .8rem; margin-bottom: 6px; color: var(--text); }
+  .big-field .bf-preview { display: block; max-height: 90px; overflow: hidden; opacity: .8; }
+
+  .actions { position: sticky; bottom: -40px; margin: 24px -20px -40px; padding: 12px 20px; display: flex; gap: 8px; align-items: center; background: var(--surface-2); border-top: 1px solid var(--border); }
+  .actions .hint { color: var(--muted); font-size: .8rem; }
+  .dirty-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: none; }
+  .dirty .dirty-dot { display: inline-block; }
+
+  @media (max-width: 1100px) {
+    .admin-main { grid-template-columns: 1fr; overflow: auto; }
+    .form-pane, .preview-pane { overflow: visible; }
+    .form-pane { border-right: 0; border-bottom: 1px solid var(--border); }
+  }
+  @media (max-width: 560px) {
+    .fields, .fields.second, .sample .s-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./">C <span>Practice</span></a>
+  <span class="tag">Admin</span>
+  <span id="admin-nav" style="display: none">
+    <select id="problem-select" aria-label="Problem to edit"></select>
+    <button id="new-btn">＋ New problem</button>
+  </span>
+  <span class="spacer"></span>
+  <a class="btn" href="./" id="view-site">View site ↗</a>
+  <button id="reset-progress" title="Clear solved marks, hints and saved code in this browser (for testing)">↺ Reset my progress</button>
+  <button id="logout" hidden>Log out</button>
+</header>
+
+<!-- login -->
+<form class="login" id="login" hidden>
+  <h1>Admin login</h1>
+  <p>The password is printed in the server window when it starts, and saved in <code>data/admin-password.txt</code>.</p>
+  <input type="password" id="password" placeholder="Admin password" autocomplete="current-password" required>
+  <p class="err" id="login-err"></p>
+  <button class="primary" type="submit">Log in</button>
+</form>
+
+<!-- editor -->
+<main class="admin-main" id="admin" hidden>
+  <section class="form-pane" id="form-pane">
+    <h2 class="pane-title" id="form-title">New problem</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" role="tab" data-tab="problem" aria-selected="true">📝 Problem</button>
+      <button type="button" class="tab" role="tab" data-tab="tests" aria-selected="false">🧪 Test cases <span class="count" id="tests-count">0</span></button>
+    </div>
+
+    <div id="tab-problem" role="tabpanel">
+
+    <div class="f level-field">
+      <span>Mode</span>
+      <div class="mode-picker" id="f-mode" role="radiogroup" aria-label="Mode">
+        <button type="button" data-mode="solo" role="radio">Solo</button>
+        <button type="button" data-mode="coop" role="radio">Co-op · 2 players</button>
+      </div>
+    </div>
+    <div class="f level-field">
+      <span>Difficulty</span>
+      <div class="level-picker" id="f-level" role="radiogroup" aria-label="Difficulty"></div>
+    </div>
+    <div class="fields">
+      <label class="f">Number <small class="num-hint" id="num-hint"></small><input id="f-number" placeholder="1" maxlength="20"></label>
+      <label class="f">Name<input id="f-name" placeholder="Sum of Numbers" maxlength="200"></label>
+    </div>
+    <div class="fields second">
+      <label class="f">Time limit<span class="unit" data-unit="sec"><input id="f-time" type="number" min="0.1" max="10" step="0.1" value="1"></span></label>
+      <label class="f">Memory limit<span class="unit" data-unit="MB"><input id="f-memory" type="number" min="1" max="4096" step="1" value="256"></span></label>
+    </div>
+
+    <div class="block">
+      <div class="head"><h3>Explanation</h3><small>The problem story. Paste, drop or insert pictures; click a picture to resize it.</small></div>
+      <div class="rich" data-field="statement"></div>
+    </div>
+    <div class="block">
+      <div class="head"><h3>Input</h3><small>What the input looks like</small></div>
+      <div class="rich" data-field="input"></div>
+    </div>
+    <div class="block">
+      <div class="head"><h3>Output</h3><small>What the program must print</small></div>
+      <div class="rich" data-field="output"></div>
+    </div>
+    <div class="block">
+      <div class="head"><h3>Constraints</h3><small>Write math between $ signs, e.g. $1 \le N \le 10^5$</small></div>
+      <div class="rich" data-field="constraints"></div>
+    </div>
+
+    <div class="block coop-only" id="coop-block">
+      <div class="head"><h3>Co-op setup</h3><small>one continuous <code>main.c</code>: Player 1's code, then Player 2's</small></div>
+      <div class="coop-intro">
+        The program is <b>one file</b>: Player 1 writes the top (the <code>#include</code>s and the start of <code>main()</code>),
+        and Player 2 carries on right after it, using Player 1's variables. Player 2's line numbers continue from Player 1's.
+        <br>Each player has their <b>own hidden tests</b> (set them in the Test cases tab), so one player can't do all the work.
+        <br>The <code>#include &lt;…&gt;</code> lines at the top of Player 1's starter are shown greyed out and locked.
+      </div>
+      <textarea id="f-shared" hidden></textarea>
+      <div class="roles-grid">
+        <div class="role-col pl1">
+          <div class="role-title">Player 1 · top of main.c</div>
+          <div class="obj-head">Objective <small>shown on the sheet under "Player 1"</small></div>
+          <label class="code-label">Explanation</label>
+          <div class="rich" data-field="p1Task"></div>
+          <label class="code-label">Output</label>
+          <div class="rich" data-field="p1Output"></div>
+          <label class="code-label">Examples</label>
+          <div class="player-samples" id="p1-samples"></div>
+          <button type="button" class="add-psample" data-list="p1-samples">＋ Add example</button>
+          <label class="code-label">Hint <small class="helper-note" style="display:inline">only Player 1 sees it, after using a hint on the Player 1 view</small></label>
+          <div class="rich" data-field="p1Hint"></div>
+          <div class="obj-head">Code</div>
+          <label class="code-label">Starter code</label>
+          <div class="code-box"><textarea class="code-input" id="f-p1starter" spellcheck="false"></textarea></div>
+          <label class="code-label">Test ending for Player 1's own tests</label>
+          <small class="helper-note">Put <b>after</b> Player 1's code. Usually prints Player 1's variables and closes <code>main()</code>.</small>
+          <div class="code-box"><textarea class="code-input" id="f-p1helper" spellcheck="false"></textarea></div>
+        </div>
+        <div class="role-col pl2">
+          <div class="role-title">Player 2 · continues main.c</div>
+          <div class="obj-head">Objective <small>shown on the sheet under "Player 2"</small></div>
+          <label class="code-label">Explanation</label>
+          <div class="rich" data-field="p2Task"></div>
+          <label class="code-label">Output</label>
+          <div class="rich" data-field="p2Output"></div>
+          <label class="code-label">Examples</label>
+          <div class="player-samples" id="p2-samples"></div>
+          <button type="button" class="add-psample" data-list="p2-samples">＋ Add example</button>
+          <label class="code-label">Hint <small class="helper-note" style="display:inline">only Player 2 sees it, after using a hint on the Player 2 view</small></label>
+          <div class="rich" data-field="p2Hint"></div>
+          <div class="obj-head">Code</div>
+          <label class="code-label">Starter code (no #include lines)</label>
+          <div class="code-box"><textarea class="code-input" id="f-p2starter" spellcheck="false"></textarea></div>
+          <label class="code-label">Test start for Player 2's own tests</label>
+          <small class="helper-note">Put <b>before</b> Player 2's code. Usually your working version of Player 1's part, so Player 2 can be tested even if Player 1 isn't finished.</small>
+          <div class="code-box"><textarea class="code-input" id="f-p2helper" spellcheck="false"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="block">
+      <div class="head"><h3>Hint</h3><small>Hidden from players until they use a hint (everyone starts with 3). On co-op problems this is the Global view's hint; each player's own hint is in Co-op setup.</small></div>
+      <div class="rich" data-field="hint"></div>
+    </div>
+
+    <div class="block">
+      <div class="head"><h3>Examples</h3><small>Shown on the paper. Students can test against them.</small></div>
+      <div id="samples"></div>
+      <button id="add-sample" type="button">＋ Add example</button>
+    </div>
+
+    <div class="block">
+      <div class="head"><h3>Made by</h3><small>Everyone who wrote this problem. Shown at the bottom of the paper.</small></div>
+      <div class="authors" id="f-authors"></div>
+      <button type="button" id="add-author">＋ Add author</button>
+    </div>
+
+    </div>
+
+    <div id="tab-tests" role="tabpanel" hidden>
+      <div class="tests-intro">
+        <b>Hidden test cases.</b> Students never see these. When they press <b>Submit</b>, their program runs on every test
+        (with this problem's time limit) and the output is compared with yours, ignoring trailing spaces and blank lines at the end.
+        <span class="coop-only-inline"><br><b>Co-op:</b> <i>Team</i> tests check the whole program (both files together).
+        <i>Player 1</i> / <i>Player 2</i> tests check each player's own part using the test ending / test start from the Problem tab;
+        their results show as <code>PPF…</code> next to that player's code.</span>
+      </div>
+      <div class="suite-picker" id="suite-picker" role="tablist" aria-label="Which tests">
+        <button type="button" data-suite="team" aria-selected="true">Team <span class="count" data-count="team">0</span></button>
+        <button type="button" data-suite="p1" aria-selected="false">Player 1 <span class="count" data-count="p1">0</span></button>
+        <button type="button" data-suite="p2" aria-selected="false">Player 2 <span class="count" data-count="p2">0</span></button>
+      </div>
+      <div class="tests-toolbar">
+        <button type="button" id="add-test">＋ Add test</button>
+        <button type="button" id="upload-tests" title="Pick .in and .out (or .ans) files; 1.in pairs with 1.out">⬆ Upload files</button>
+        <button type="button" id="copy-examples" title="Add the examples from the Problem tab as tests">⧉ Copy examples</button>
+        <span class="spacer"></span>
+        <button type="button" class="danger" id="clear-tests">Delete all</button>
+      </div>
+      <div class="tests-drop" id="tests-drop">
+        <div class="tests-empty" id="tests-empty">No test cases yet. Add one, or drop <code>.in</code> / <code>.out</code> files here.</div>
+        <div id="tests"></div>
+      </div>
+      <input type="file" id="test-files" multiple hidden>
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="primary" id="save">Save</button>
+      <button class="danger" id="delete">Delete</button>
+      <span class="dirty-dot" title="Unsaved changes"></span>
+      <span class="hint" id="save-hint">Ctrl+S to save</span>
+    </div>
+  </section>
+
+  <section class="preview-pane">
+    <h2 class="pane-title">Live preview</h2>
+    <article class="paper" id="preview"></article>
+  </section>
+</main>
+
+<div class="img-frame" id="img-frame">
+  <div class="img-tools" id="img-tools">
+    <button data-w="25">25%</button><button data-w="50">50%</button><button data-w="75">75%</button><button data-w="100">100%</button>
+    <span class="sep"></span>
+    <button data-align="left" title="Align left">⇤</button><button data-align="center" title="Center">↔</button><button data-align="right" title="Align right">⇥</button>
+    <span class="sep"></span>
+    <button data-remove title="Remove picture">🗑</button>
+  </div>
+  <span class="img-size" id="img-size"></span>
+  <span class="img-handle" id="img-handle" title="Drag to resize"></span>
+</div>
+<input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+<div class="toast" id="toast"></div>
+
+<template id="rich-template">
+  <div class="rich-toolbar">
+    <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+    <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+    <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+    <span class="sep"></span>
+    <button type="button" data-cmd="h3" title="Heading">H</button>
+    <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+    <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+    <span class="sep"></span>
+    <button type="button" data-cmd="code" title="Inline code">&lt;/&gt;</button>
+    <button type="button" data-cmd="pre" title="Code block">{ }</button>
+    <button type="button" data-cmd="math" title="Show math symbols">∑ Math</button>
+    <button type="button" data-cmd="superscript" title="Superscript">x²</button>
+    <button type="button" data-cmd="subscript" title="Subscript">x₂</button>
+    <span class="sep"></span>
+    <button type="button" data-cmd="image" title="Insert picture">🖼 Picture</button>
+    <button type="button" data-cmd="removeFormat" title="Clear formatting">⌫ Clear</button>
+  </div>
+  <div class="math-palette" hidden></div>
+  <div class="rich-body" contenteditable="true" spellcheck="true"></div>
+</template>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/sublime.min.js"></script>
+<script src="js/code-editor.js"></script>
+<script src="js/problem-view.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const session = {
+  get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch {} },
+  del(k) { try { sessionStorage.removeItem(k); } catch {} },
+};
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- auth ---------- */
+let adminKey = session.get('adminKey') || '';
+async function api(method, url, body, headers = {}) {
+  const res = await fetch(url, {
+    method,
+    headers: { 'X-Admin-Key': adminKey, ...(body && !(body instanceof Blob) ? { 'Content-Type': 'application/json' } : {}), ...headers },
+    body: body instanceof Blob ? body : body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { logout('Your session ended. Please log in again.'); throw new Error('auth'); }
+  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  return data;
+}
+async function tryLogin(key) {
+  const res = await fetch('api/admin/check', { headers: { 'X-Admin-Key': key } });
+  return res.ok;
+}
+function showAdmin(on) {
+  $('login').hidden = on; $('admin').hidden = !on; $('logout').hidden = !on;
+  $('admin-nav').style.display = on ? 'contents' : 'none';
+}
+function logout(msg) {
+  adminKey = ''; session.del('adminKey'); showAdmin(false);
+  $('login-err').textContent = msg || ''; $('password').focus();
+}
+$('login').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const key = $('password').value.trim();
+  $('login-err').textContent = '';
+  try {
+    if (await tryLogin(key)) { adminKey = key; session.set('adminKey', key); $('password').value = ''; startAdmin(); }
+    else $('login-err').textContent = 'Wrong password.';
+  } catch { $('login-err').textContent = 'Cannot reach the server. Is it running?'; }
+});
+$('logout').addEventListener('click', () => { if (confirmLeave()) logout(); });
+
+/* ---------- rich text editors ---------- */
+try { document.execCommand('defaultParagraphSeparator', false, 'p'); document.execCommand('enableObjectResizing', false, 'false'); } catch {}
+const PLACEHOLDERS = {
+  statement: 'Tell the story of the problem…',
+  input: 'The first line contains one integer $N$…',
+  output: 'Print one integer…',
+  constraints: '$1 \\le N \\le 10^5$',
+  hint: 'A nudge in the right direction, e.g. use long long because the sum can get very big',
+  p1Hint: 'A nudge for Player 1 only',
+  p2Hint: 'A nudge for Player 2 only',
+  p1Output: 'What Player 1\'s part should produce, e.g. d and s in km and km/h',
+  p2Output: 'What Player 2\'s part should print',
+  p1Task: 'What Player 1 builds, e.g. "Write to_km() and to_kmh() to convert units"',
+  p2Task: 'What Player 2 builds, e.g. "Read the input and use Player 1\'s functions to find the time"',
+};
+const rich = {};
+for (const box of document.querySelectorAll('.rich')) {
+  box.appendChild($('rich-template').content.cloneNode(true));
+  const body = box.querySelector('.rich-body');
+  const field = box.dataset.field;
+  body.dataset.placeholder = PLACEHOLDERS[field] || '';
+  if (field === 'statement') body.classList.add('tall');
+  rich[field] = body;
+
+  const toolbar = box.querySelector('.rich-toolbar');
+  const palette = box.querySelector('.math-palette');
+  toolbar.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+  toolbar.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.cmd === 'math') { toggleMathPalette(palette, b, body); return; }
+    if (!body.contains(document.getSelection().anchorNode)) placeCaretAtEnd(body);
+    command(b.dataset.cmd, body);
+    changed();
+  });
+  palette.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+  palette.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) insertMath(body, b.dataset.tex, 'raw' in b.dataset);
+  });
+  body.addEventListener('input', () => { tidyEmpty(body); changed(); });
+  body.addEventListener('paste', (e) => onPaste(e, body));
+  body.addEventListener('dragover', (e) => { if (hasImageFiles(e.dataTransfer)) { e.preventDefault(); box.classList.add('drag-over'); } });
+  body.addEventListener('dragleave', () => box.classList.remove('drag-over'));
+  body.addEventListener('drop', (e) => onDrop(e, body, box));
+  body.addEventListener('click', (e) => { if (e.target.tagName === 'IMG') selectImage(e.target, body); });
+}
+
+function tidyEmpty(body) { if (!body.textContent.trim() && !body.querySelector('img')) body.innerHTML = ''; }
+function placeCaretAtEnd(el) {
+  el.focus();
+  const r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+  const s = document.getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+function currentBlock() {
+  try { return (document.queryCommandValue('formatBlock') || '').toLowerCase(); } catch { return ''; }
+}
+function command(cmd, body) {
+  const sel = document.getSelection();
+  switch (cmd) {
+    case 'h3': case 'pre': {
+      const now = currentBlock();
+      document.execCommand('formatBlock', false, now === cmd ? 'p' : cmd);
+      break;
+    }
+    case 'code': {
+      const text = sel.toString() || 'code';
+      document.execCommand('insertHTML', false, `<code>${esc(text)}</code>&#8203;`);
+      break;
+    }
+    case 'image': {
+      pendingImageTarget = { body, range: sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null };
+      $('file-input').click();
+      break;
+    }
+    default: document.execCommand(cmd, false, null);
+  }
+  body.focus();
+}
+
+/* ---------- math palette ---------- */
+// [how the button looks (LaTeX), what gets inserted ("|" = where the cursor lands), tooltip]
+const MATH_GROUPS = [
+  ['Common', [
+    ['1 \\le N \\le 10^{5}', '1 \\le N \\le 10^{5}', 'Range of N'],
+    ['a_1, a_2, \\ldots, a_N', 'a_1, a_2, \\ldots, a_N', 'Sequence'],
+    ['10^9 + 7', '10^9 + 7', 'Common modulus'],
+    ['O(N \\log N)', 'O(N \\log N)', 'Complexity'],
+    ['N \\times M', 'N \\times M', 'Grid size'],
+    ['\\lvert S \\rvert', '\\lvert S \\rvert', 'Length of a string'],
+  ]],
+  ['Compare', [
+    ['\\le', '\\le '], ['\\ge', '\\ge '], ['\\ne', '\\ne '], ['<', '<'], ['>', '>'],
+    ['\\approx', '\\approx '], ['\\equiv', '\\equiv '], ['a \\pmod{m}', '\\pmod{|}', 'mod (in brackets)'],
+  ]],
+  ['Operators', [
+    ['\\times', '\\times '], ['\\div', '\\div '], ['\\cdot', '\\cdot '], ['\\pm', '\\pm '],
+    ['\\bmod', '\\bmod '], ['\\oplus', '\\oplus ', 'XOR'], ['\\land', '\\land ', 'AND'], ['\\lor', '\\lor ', 'OR'], ['\\lnot', '\\lnot ', 'NOT'],
+  ]],
+  ['Structures', [
+    ['x^{2}', '^{|}', 'Power'], ['x_{i}', '_{|}', 'Subscript'], ['\\frac{a}{b}', '\\frac{|}{}', 'Fraction'],
+    ['\\sqrt{x}', '\\sqrt{|}', 'Square root'], ['\\sqrt[n]{x}', '\\sqrt[|]{}', 'n-th root'],
+    ['\\lvert x \\rvert', '\\lvert | \\rvert', 'Absolute value'], ['\\lfloor x \\rfloor', '\\lfloor | \\rfloor', 'Floor'],
+    ['\\lceil x \\rceil', '\\lceil | \\rceil', 'Ceiling'], ['\\binom{n}{k}', '\\binom{|}{}', 'Binomial'],
+    ['\\overline{x}', '\\overline{|}', 'Overline'], ['\\text{ab}', '\\text{|}', 'Normal text inside math'],
+  ]],
+  ['Big', [
+    ['\\sum_{i=1}^{n}', '\\sum_{i=1}^{|}', 'Sum'], ['\\prod_{i=1}^{n}', '\\prod_{i=1}^{|}', 'Product'],
+    ['\\max', '\\max(|)'], ['\\min', '\\min(|)'], ['\\gcd', '\\gcd(|)'], ['\\log', '\\log '],
+    ['\\ldots', '\\ldots ', 'Dots (low)'], ['\\cdots', '\\cdots ', 'Dots (middle)'],
+  ]],
+  ['Sets', [
+    ['\\in', '\\in '], ['\\notin', '\\notin '], ['\\subseteq', '\\subseteq '], ['\\cup', '\\cup '], ['\\cap', '\\cap '],
+    ['\\emptyset', '\\emptyset '], ['\\{x\\}', '\\{ | \\}', 'Set braces'], ['\\forall', '\\forall '], ['\\exists', '\\exists '],
+    ['\\mathbb{N}', '\\mathbb{N}'], ['\\mathbb{Z}', '\\mathbb{Z}'], ['\\mathbb{R}', '\\mathbb{R}'], ['\\infty', '\\infty '],
+  ]],
+  ['Arrows', [
+    ['\\to', '\\to '], ['\\leftarrow', '\\leftarrow '], ['\\leftrightarrow', '\\leftrightarrow '],
+    ['\\Rightarrow', '\\Rightarrow '], ['\\Leftrightarrow', '\\Leftrightarrow '], ['\\uparrow', '\\uparrow '], ['\\downarrow', '\\downarrow '],
+  ]],
+  ['Greek', 'alpha beta gamma delta epsilon theta lambda mu pi sigma phi omega Delta Sigma Omega'
+    .split(' ').map((g) => [`\\${g}`, `\\${g} `])],
+];
+
+function buildMathPalette(palette) {
+  const top = document.createElement('div');
+  top.className = 'mp-top';
+  top.innerHTML = `<span>Click a symbol to insert it. It goes inside <code>$…$</code> automatically.</span><span class="spacer"></span>`;
+  const inline = document.createElement('button');
+  inline.type = 'button'; inline.className = 'math-btn wide'; inline.dataset.tex = '|';
+  inline.textContent = '$ x $ inline'; inline.title = 'Start inline math (or wrap the selected text)';
+  const display = document.createElement('button');
+  display.type = 'button'; display.className = 'math-btn wide'; display.dataset.tex = '$$|$$'; display.dataset.raw = '';
+  display.textContent = '$$ x $$ centered'; display.title = 'Math on its own centered line';
+  top.append(inline, display);
+  palette.appendChild(top);
+
+  for (const [label, items] of MATH_GROUPS) {
+    const row = document.createElement('div'); row.className = 'math-group';
+    const name = document.createElement('div'); name.className = 'mg-label'; name.textContent = label;
+    const box = document.createElement('div'); box.className = 'mg-items';
+    for (const [look, tex, tip] of items) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'math-btn' + (look.length > 14 ? ' wide' : '');
+      b.dataset.tex = tex;
+      b.title = (tip ? tip + ': ' : '') + tex.replace('|', '…').trim();
+      if (window.katex) katex.render(look, b, { throwOnError: false });
+      else b.textContent = look;
+      box.appendChild(b);
+    }
+    row.append(name, box);
+    palette.appendChild(row);
+  }
+}
+
+function toggleMathPalette(palette, button, body) {
+  if (!palette.childElementCount) buildMathPalette(palette);
+  palette.hidden = !palette.hidden;
+  button.classList.toggle('active', !palette.hidden);
+  if (!palette.hidden && !body.contains(document.getSelection().anchorNode)) placeCaretAtEnd(body);
+}
+
+// Is the caret between an opening and closing $ in the current paragraph?
+function caretInsideMath(body) {
+  const sel = document.getSelection();
+  if (!sel.rangeCount) return false;
+  const r = sel.getRangeAt(0);
+  const start = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentElement;
+  let block = start.closest('p, li, td, th, h3, h4, pre, blockquote, div');
+  if (!block || !body.contains(block)) block = body;
+  const before = document.createRange();
+  before.setStart(block, 0);
+  before.setEnd(r.startContainer, r.startOffset);
+  const text = before.toString().replace(/\\\$/g, '');
+  return (text.match(/\$/g) || []).length % 2 === 1;
+}
+
+function insertMath(body, tex, raw) {
+  const sel = document.getSelection();
+  if (!sel.rangeCount || !body.contains(sel.anchorNode)) placeCaretAtEnd(body);
+  let [before, after = ''] = tex.split('|');
+  if (!raw && !caretInsideMath(body)) { before = '$' + before; after += '$'; }
+  const selected = sel.toString();
+  document.execCommand('insertText', false, before + selected + after);
+  if (after && sel.modify) for (let i = 0; i < after.length; i++) sel.modify('move', 'backward', 'character');
+  changed();
+}
+
+/* ---------- pictures ---------- */
+let pendingImageTarget = null;
+const hasImageFiles = (dt) => dt && [...dt.items || []].some((i) => i.kind === 'file' && i.type.startsWith('image/'));
+
+async function upload(file) {
+  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) throw new Error('Only PNG, JPG, GIF and WebP pictures are allowed.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('Picture is too large (max 5 MB).');
+  const data = await api('POST', 'api/upload', file, { 'Content-Type': file.type });
+  return data.url;
+}
+async function insertImages(files, body, range) {
+  body.focus();
+  if (range) { const s = document.getSelection(); s.removeAllRanges(); s.addRange(range); }
+  else placeCaretAtEnd(body);
+  for (const file of files) {
+    try {
+      toast('Uploading picture…');
+      const url = await upload(file);
+      document.execCommand('insertHTML', false,
+        `<img src="${esc(url)}" alt="" style="width: 60%; display: block; margin-left: auto; margin-right: auto"><p><br></p>`);
+      toast('Picture added. Click it to resize.');
+      changed();
+    } catch (e) { if (e.message !== 'auth') toast(e.message); }
+  }
+}
+$('file-input').addEventListener('change', (e) => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (pendingImageTarget && files.length) insertImages(files, pendingImageTarget.body, pendingImageTarget.range);
+  pendingImageTarget = null;
+});
+function onPaste(e, body) {
+  const dt = e.clipboardData;
+  const images = [...(dt.files || [])].filter((f) => f.type.startsWith('image/'));
+  if (images.length) {
+    e.preventDefault();
+    const s = document.getSelection();
+    insertImages(images, body, s.rangeCount ? s.getRangeAt(0).cloneRange() : null);
+    return;
+  }
+  const html = dt.getData('text/html');
+  if (html) {
+    e.preventDefault();
+    document.execCommand('insertHTML', false, ProblemView.sanitize(html));
+  }
+}
+function onDrop(e, body, box) {
+  box.classList.remove('drag-over');
+  const images = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
+  if (!images.length) return;
+  e.preventDefault();
+  let range = null;
+  if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(e.clientX, e.clientY);
+  else if (document.caretPositionFromPoint) {
+    const p = document.caretPositionFromPoint(e.clientX, e.clientY);
+    if (p) { range = document.createRange(); range.setStart(p.offsetNode, p.offset); range.collapse(true); }
+  }
+  insertImages(images, body, range);
+}
+
+/* click a picture -> frame with resize handle, size presets, alignment, remove */
+let selImg = null, selBody = null;
+const frame = $('img-frame');
+function selectImage(img, body) {
+  if (selImg) selImg.classList.remove('selected');
+  selImg = img; selBody = body;
+  img.classList.add('selected');
+  frame.classList.add('show');
+  positionFrame();
+}
+function deselectImage() {
+  if (selImg) selImg.classList.remove('selected');
+  selImg = selBody = null;
+  frame.classList.remove('show');
+}
+function contentWidth(body) {
+  const cs = getComputedStyle(body);
+  return body.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+}
+function positionFrame() {
+  if (!selImg) return;
+  if (!document.body.contains(selImg)) return deselectImage();
+  const r = selImg.getBoundingClientRect();
+  Object.assign(frame.style, { left: r.left - 3 + 'px', top: r.top - 3 + 'px', width: r.width + 6 + 'px', height: r.height + 6 + 'px' });
+  $('img-tools').style.top = r.top < 70 ? `${r.height + 12}px` : '-40px';
+  $('img-size').textContent = Math.round((r.width / contentWidth(selBody)) * 100) + '%';
+}
+function setAlign(img, align) {
+  img.style.display = 'block';
+  img.style.marginLeft = align === 'left' ? '0' : 'auto';
+  img.style.marginRight = align === 'right' ? '0' : 'auto';
+}
+function alignOf(img) {
+  if (img.style.marginLeft === 'auto' && img.style.marginRight === 'auto') return 'center';
+  if (img.style.marginLeft === 'auto') return 'right';
+  return 'left';
+}
+$('img-tools').addEventListener('mousedown', (e) => e.preventDefault());
+$('img-tools').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || !selImg) return;
+  if (b.dataset.w) selImg.style.width = b.dataset.w + '%';
+  if (b.dataset.align) setAlign(selImg, b.dataset.align);
+  if ('remove' in b.dataset) { selImg.remove(); deselectImage(); changed(); return; }
+  requestAnimationFrame(positionFrame);
+  changed();
+});
+$('img-handle').addEventListener('pointerdown', (e) => {
+  if (!selImg) return;
+  e.preventDefault();
+  const handle = e.currentTarget;
+  handle.setPointerCapture(e.pointerId);
+  const startX = e.clientX, startW = selImg.getBoundingClientRect().width;
+  const full = contentWidth(selBody);
+  const factor = alignOf(selImg) === 'center' ? 2 : alignOf(selImg) === 'right' ? -1 : 1;
+  const move = (ev) => {
+    const w = Math.min(full, Math.max(40, startW + (ev.clientX - startX) * factor));
+    selImg.style.width = ((w / full) * 100).toFixed(1) + '%';
+    positionFrame();
+  };
+  const up = () => { handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); changed(); };
+  handle.addEventListener('pointermove', move);
+  handle.addEventListener('pointerup', up);
+});
+document.addEventListener('mousedown', (e) => {
+  if (selImg && e.target !== selImg && !frame.contains(e.target)) deselectImage();
+});
+document.addEventListener('keydown', (e) => {
+  if (selImg && (e.key === 'Delete' || e.key === 'Backspace') && selBody.contains(document.activeElement || selBody)) {
+    e.preventDefault(); selImg.remove(); deselectImage(); changed();
+  }
+});
+document.addEventListener('scroll', positionFrame, true);
+window.addEventListener('resize', positionFrame);
+
+/* ---------- samples ---------- */
+function addSample(s = { input: '', output: '' }, focus = false, listId = 'samples') {
+  const div = document.createElement('div');
+  div.className = 'sample';
+  div.innerHTML = `
+    <div class="s-head"><span class="s-title"></span><button type="button" class="danger">Remove</button></div>
+    <div class="s-grid">
+      <div><label>Input</label><textarea class="s-in" spellcheck="false"></textarea></div>
+      <div><label>Output</label><textarea class="s-out" spellcheck="false"></textarea></div>
+    </div>`;
+  div.querySelector('.s-in').value = s.input;
+  div.querySelector('.s-out').value = s.output;
+  div.querySelector('button').addEventListener('click', () => { div.remove(); numberSamples(listId); changed(); });
+  $(listId).appendChild(div);
+  numberSamples(listId);
+  if (focus) div.querySelector('.s-in').focus();
+}
+function numberSamples(listId = 'samples') {
+  [...$(listId).children].forEach((d, i) => { d.querySelector('.s-title').textContent = `Example ${i + 1}`; });
+}
+const readSamples = (listId) => [...$(listId).children]
+  .map((d) => ({ input: d.querySelector('.s-in').value, output: d.querySelector('.s-out').value }))
+  .filter((x) => x.input.trim() || x.output.trim());
+for (const b of document.querySelectorAll('.add-psample')) {
+  b.addEventListener('click', () => { addSample(undefined, true, b.dataset.list); changed(); });
+}
+$('add-sample').addEventListener('click', () => { addSample(undefined, true); changed(); });
+
+/* ---------- difficulty picker ---------- */
+let list = [], currentId = null, dirty = false;
+let level = '1';
+let numberAuto = false; // new problem: keep the number in step with the chosen level
+
+for (const lv of ProblemView.LEVELS) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'lv-chip';
+  b.dataset.level = lv;
+  b.setAttribute('role', 'radio');
+  b.style.setProperty('--chip', lv === 'special' ? 'var(--lv6)' : `var(--lv${lv})`);
+  b.title = ProblemView.levelName(lv);
+  b.append(ProblemView.levelElement(lv));
+  b.addEventListener('click', () => {
+    setLevel(lv);
+    if (numberAuto) $('f-number').value = nextNumber(lv);
+    updateNumberHint();
+    changed();
+  });
+  $('f-level').appendChild(b);
+}
+function setLevel(lv) {
+  level = ProblemView.normalizeLevel(lv);
+  for (const b of $('f-level').children) b.setAttribute('aria-checked', String(b.dataset.level === level));
+}
+function nextNumber(lv) {
+  const nums = list.filter((p) => p.id !== currentId && ProblemView.normalizeLevel(p.difficulty) === lv)
+    .map((p) => parseInt(p.number, 10)).filter(Number.isFinite);
+  return String(nums.length ? Math.max(...nums) + 1 : 1);
+}
+function numberTaken(lv, num) {
+  return list.some((p) => p.id !== currentId && ProblemView.normalizeLevel(p.difficulty) === lv
+    && String(p.number).toLowerCase() === String(num).trim().toLowerCase());
+}
+function updateNumberHint() {
+  const num = $('f-number').value.trim();
+  const taken = num && numberTaken(level, num);
+  const stars = ProblemView.starsText(level);
+  $('num-hint').textContent = taken ? `· already used in ${stars}` : `· in ${stars}`;
+  $('num-hint').className = 'num-hint' + (taken ? ' err' : '');
+}
+$('f-number').addEventListener('input', () => { numberAuto = false; updateNumberHint(); });
+
+/* ---------- tabs ---------- */
+function showTab(name) {
+  for (const t of document.querySelectorAll('.tab')) {
+    const on = t.dataset.tab === name;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', String(on));
+  }
+  $('tab-problem').hidden = name !== 'problem';
+  $('tab-tests').hidden = name !== 'tests';
+  deselectImage();
+}
+for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => showTab(t.dataset.tab));
+
+/* ---------- hidden test cases ---------- */
+// Three sets of hidden tests: 'team' (whole program; the only set for solo problems),
+// 'p1' and 'p2' (each co-op player's own part). `tests` is the set being shown.
+let suites = { team: [], p1: [], p2: [] }, currentSuite = 'team';
+const dirtySuites = new Set();
+let tests = suites.team, testsDirty = false;
+const totalTestCount = () => suites.team.length + (mode === 'coop' ? suites.p1.length + suites.p2.length : 0);
+function selectSuite(name) {
+  currentSuite = name;
+  tests = suites[name];
+  for (const b of $('suite-picker').children) b.setAttribute('aria-selected', String(b.dataset.suite === name));
+  renderTests();
+}
+for (const b of $('suite-picker').children) b.addEventListener('click', () => selectSuite(b.dataset.suite));
+function resetSuites(loaded) {
+  suites = { team: [], p1: [], p2: [], ...(loaded || {}) };
+  dirtySuites.clear();
+  testsDirty = false;
+  selectSuite(mode === 'coop' ? currentSuite : 'team');
+}
+const BIG = 100 * 1024; // larger than this: shown as a summary, replaced by uploading
+const fmtSize = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+
+function testsChanged() { testsDirty = true; dirtySuites.add(currentSuite); updateTestCounts(); changed(); }
+function updateTestCounts() {
+  $('tests-count').textContent = totalTestCount();
+  for (const el of document.querySelectorAll('[data-count]')) el.textContent = suites[el.dataset.count].length;
+}
+
+function renderTests() {
+  const box = $('tests');
+  box.textContent = '';
+  updateTestCounts();
+  $('tests-empty').hidden = tests.length > 0;
+  $('clear-tests').hidden = !tests.length;
+  tests.forEach((t, i) => box.appendChild(testCard(t, i)));
+}
+
+function testCard(t, i) {
+  const div = document.createElement('div');
+  div.className = 'sample test';
+  const head = document.createElement('div');
+  head.className = 's-head';
+  const title = document.createElement('span');
+  title.innerHTML = `Test ${i + 1}<span class="t-size"></span>`;
+  const size = title.querySelector('.t-size');
+  const updateSize = () => { size.textContent = `· in ${fmtSize(t.input.length)} · out ${fmtSize(t.output.length)}`; };
+  updateSize();
+  const btns = document.createElement('span');
+  btns.className = 't-btns';
+  const mk = (label, tip, fn, cls) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = label; b.title = tip; if (cls) b.className = cls;
+    b.addEventListener('click', fn);
+    btns.appendChild(b);
+  };
+  if (i > 0) mk('↑', 'Move up', () => { [tests[i - 1], tests[i]] = [tests[i], tests[i - 1]]; renderTests(); testsChanged(); });
+  if (i < tests.length - 1) mk('↓', 'Move down', () => { [tests[i + 1], tests[i]] = [tests[i], tests[i + 1]]; renderTests(); testsChanged(); });
+  mk('Remove', 'Remove this test', () => { tests.splice(i, 1); renderTests(); testsChanged(); }, 'danger');
+  head.append(title, btns);
+
+  const grid = document.createElement('div');
+  grid.className = 's-grid';
+  for (const [key, label] of [['input', 'Input'], ['output', 'Expected output']]) {
+    const cell = document.createElement('div');
+    const lab = document.createElement('label');
+    lab.textContent = label;
+    cell.appendChild(lab);
+    if (t[key].length > BIG) {
+      const big = document.createElement('div');
+      big.className = 'big-field';
+      big.innerHTML = '<span class="bf-note"></span><span class="bf-preview"></span>';
+      big.querySelector('.bf-note').textContent = `${fmtSize(t[key].length)}: too large to edit here. `;
+      big.querySelector('.bf-preview').textContent = t[key].slice(0, 400) + '…';
+      const replace = document.createElement('button');
+      replace.type = 'button'; replace.textContent = 'Replace with a file…';
+      replace.addEventListener('click', () => pickFile(async (f) => { t[key] = await f.text(); renderTests(); testsChanged(); }));
+      big.querySelector('.bf-note').appendChild(replace);
+      cell.appendChild(big);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.spellcheck = false;
+      ta.value = t[key];
+      ta.className = key === 'input' ? 't-in' : 't-out';
+      ta.addEventListener('input', () => { t[key] = ta.value; updateSize(); testsDirty = true; dirtySuites.add(currentSuite); });
+      cell.appendChild(ta);
+    }
+    grid.appendChild(cell);
+  }
+  div.append(head, grid);
+  return div;
+}
+
+function pickFile(onFile) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.addEventListener('change', () => { if (input.files[0]) onFile(input.files[0]); });
+  input.click();
+}
+
+// Pair files by name: 1.in + 1.out (or .ans), input1.txt + output1.txt, sample_2.in + sample_2.out ...
+async function addTestFiles(files) {
+  const groups = new Map();
+  let unknown = 0;
+  for (const f of files) {
+    const lower = f.name.toLowerCase();
+    const stem = lower.replace(/\.[^.]+$/, '');
+    let kind = null;
+    if (/\.in$/.test(lower)) kind = 'input';
+    else if (/\.(out|ans)$/.test(lower)) kind = 'output';
+    else if (/(^|[^a-z])(in|input)([^a-z]|$)/.test(stem)) kind = 'input';
+    else if (/(^|[^a-z])(out|output|ans|answer)([^a-z]|$)/.test(stem)) kind = 'output';
+    if (!kind) { unknown++; continue; }
+    const key = stem.replace(/(^|[^a-z])(input|output|answer|in|out|ans)(?=[^a-z]|$)/g, '$1').replace(/^[._\-\s]+|[._\-\s]+$/g, '') || '0';
+    if (!groups.has(key)) groups.set(key, { input: '', output: '' });
+    groups.get(key)[kind] = await f.text();
+  }
+  const keys = [...groups.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  for (const k of keys) tests.push(groups.get(k));
+  renderTests();
+  if (keys.length) testsChanged();
+  const half = keys.filter((k) => !groups.get(k).input || !groups.get(k).output).length;
+  toast(`Added ${keys.length} test${keys.length === 1 ? '' : 's'}` + (half ? ` (${half} missing an input or output file)` : '') + (unknown ? ` · ${unknown} file(s) not recognised` : ''));
+}
+
+$('add-test').addEventListener('click', () => {
+  tests.push({ input: '', output: '' });
+  renderTests(); testsChanged();
+  const last = $('tests').lastElementChild;
+  if (last) { last.scrollIntoView({ behavior: 'smooth', block: 'center' }); last.querySelector('textarea')?.focus(); }
+});
+$('upload-tests').addEventListener('click', () => $('test-files').click());
+$('test-files').addEventListener('change', (e) => { const f = [...e.target.files]; e.target.value = ''; if (f.length) addTestFiles(f); });
+$('copy-examples').addEventListener('click', () => {
+  const samples = collect().samples;
+  if (!samples.length) { toast('This problem has no examples yet.'); return; }
+  tests.push(...samples.map((s) => ({ input: s.input, output: s.output })));
+  renderTests(); testsChanged();
+  toast(`Copied ${samples.length} example${samples.length === 1 ? '' : 's'}`);
+});
+$('clear-tests').addEventListener('click', () => {
+  if (!confirm(`Delete all ${tests.length} test cases? (Nothing is saved until you press Save.)`)) return;
+  tests = suites[currentSuite] = []; renderTests(); testsChanged();
+});
+const drop = $('tests-drop');
+drop.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); drop.classList.add('drag-over'); } });
+drop.addEventListener('dragleave', (e) => { if (!drop.contains(e.relatedTarget)) drop.classList.remove('drag-over'); });
+drop.addEventListener('drop', (e) => {
+  drop.classList.remove('drag-over');
+  if (!e.dataTransfer.files.length) return;
+  e.preventDefault();
+  addTestFiles([...e.dataTransfer.files]);
+});
+
+/* ---------- made by (several authors) ---------- */
+function addAuthor(name = '', focus = false) {
+  const row = document.createElement('div');
+  row.className = 'author-row';
+  const input = document.createElement('input');
+  input.maxLength = 100;
+  input.placeholder = 'Author name';
+  input.value = name;
+  // Enter adds the next author
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addAuthor('', true); changed(); } });
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'danger';
+  remove.textContent = '✕';
+  remove.title = 'Remove this author';
+  remove.addEventListener('click', () => {
+    row.remove();
+    if (!$('f-authors').children.length) addAuthor();
+    changed();
+  });
+  row.append(input, remove);
+  $('f-authors').appendChild(row);
+  if (focus) input.focus();
+}
+$('add-author').addEventListener('click', () => { addAuthor('', true); changed(); });
+
+/* ---------- solo / co-op ---------- */
+let mode = 'solo';
+const SHARED_TEMPLATE = `// shared.h: the contract between Player 1 and Player 2.
+// Player 1 writes these functions in p1.c; Player 2 calls them from p2.c.
+#ifndef SHARED_H
+#define SHARED_H
+
+// e.g. double to_km(double value, char unit);
+
+#endif
+`;
+const STARTER_TEMPLATES = {
+  p1: '#include <stdio.h>\n\nint main(void) {\n    // Player 1\n    \n',
+  p2: '    // Player 2\n    \n    return 0;\n}\n',
+};
+function setMode(m) {
+  mode = m === 'coop' ? 'coop' : 'solo';
+  for (const b of $('f-mode').children) b.setAttribute('aria-checked', String(b.dataset.mode === mode));
+  $('form-pane').classList.toggle('is-coop', mode === 'coop');
+  if (mode === 'coop' && typeof refreshCodeBoxes === 'function') refreshCodeBoxes();
+  if (mode !== 'coop' && typeof selectSuite === 'function' && currentSuite !== 'team') selectSuite('team');
+  if (typeof updateTestCounts === 'function') updateTestCounts();
+}
+for (const b of $('f-mode').children) {
+  b.addEventListener('click', () => {
+    setMode(b.dataset.mode);
+    if (mode === 'coop') {  // fill in templates the first time
+      if (!getCode('f-p1starter').trim()) setCodeBox('f-p1starter', STARTER_TEMPLATES.p1);
+      if (!getCode('f-p2starter').trim()) setCodeBox('f-p2starter', STARTER_TEMPLATES.p2);
+    }
+    changed();
+  });
+}
+// Tab inserts spaces in the code boxes
+const codeEds = {};
+for (const ta of document.querySelectorAll('.code-input')) {
+  codeEds[ta.id] = createCodeEditor(ta, { lang: 'c', onChange: () => changed() });
+  if (codeEds[ta.id].cm) codeEds[ta.id].cm.setOption('viewportMargin', Infinity);
+}
+const getCode = (id) => codeEds[id].getValue();
+const setCodeBox = (id, v) => codeEds[id].setValue(v || '');
+const refreshCodeBoxes = () => requestAnimationFrame(() => { for (const ed of Object.values(codeEds)) ed.refresh(); });
+for (const ta of document.querySelectorAll('.code-input')) {
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); document.execCommand('insertText', false, '    '); }
+  });
+}
+
+/* ---------- reset my progress (testing) ---------- */
+$('reset-progress').addEventListener('click', () => {
+  if (!confirm('Reset your progress in this browser?\n\nThis clears: solved ✓ marks, revealed hints (and gives you 3 hints again), and all saved code.')) return;
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    for (const k of keys) if (/^(code:|solved:|hint:)|^hints-left$/.test(k)) localStorage.removeItem(k);
+    toast('Progress reset ✓');
+  } catch { toast('Could not reset: this browser blocks site storage.'); }
+});
+
+/* ---------- form <-> problem ---------- */
+
+function collect() {
+  const html = (f) => (ProblemView.isBlank(rich[f].innerHTML) ? '' : ProblemView.sanitize(rich[f].innerHTML.replace(/​/g, '')));
+  return {
+    number: $('f-number').value.trim(),
+    name: $('f-name').value.trim(),
+    difficulty: level,
+    madeBy: [...$('f-authors').querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean),
+    timeLimit: Number($('f-time').value) || 1,
+    memoryLimit: Number($('f-memory').value) || 256,
+    statement: html('statement'), input: html('input'), output: html('output'), constraints: html('constraints'),
+    hint: html('hint'),
+    mode,
+    shared: $('f-shared').value,
+    p1Task: html('p1Task'), p2Task: html('p2Task'),
+    p1Output: html('p1Output'), p2Output: html('p2Output'),
+    p1Hint: html('p1Hint'), p2Hint: html('p2Hint'),
+    p1Samples: readSamples('p1-samples'), p2Samples: readSamples('p2-samples'),
+    p1Starter: getCode('f-p1starter'), p2Starter: getCode('f-p2starter'),
+    p1TestHelper: getCode('f-p1helper'), p2TestHelper: getCode('f-p2helper'),
+    samples: [...$('samples').children].map((d) => ({ input: d.querySelector('.s-in').value, output: d.querySelector('.s-out').value }))
+      .filter((s) => s.input.trim() || s.output.trim()),
+  };
+}
+function fill(p) {
+  deselectImage();
+  $('f-number').value = p.number || '';
+  $('f-name').value = p.name || '';
+  setLevel(p.difficulty || level);
+  setMode(p.mode === 'coop' ? 'coop' : 'solo');
+  $('f-shared').value = p.shared || '';
+  setCodeBox('f-p1starter', p.p1Starter);
+  setCodeBox('f-p1helper', p.p1TestHelper);
+  setCodeBox('f-p2starter', p.p2Starter);
+  setCodeBox('f-p2helper', p.p2TestHelper);
+  for (const n of [1, 2]) {
+    $(`p${n}-samples`).textContent = '';
+    (p[`p${n}Samples`] || []).forEach((x) => addSample(x, false, `p${n}-samples`));
+  }
+  refreshCodeBoxes();
+  $('f-authors').textContent = '';
+  const authors = ProblemView.authorList(p.madeBy);
+  (authors.length ? authors : ['']).forEach((a) => addAuthor(a));
+  $('f-time').value = p.timeLimit ?? 1;
+  $('f-memory').value = p.memoryLimit ?? 256;
+  for (const f of ['statement', 'input', 'output', 'constraints', 'hint', 'p1Task', 'p2Task', 'p1Output', 'p2Output', 'p1Hint', 'p2Hint']) rich[f].innerHTML = ProblemView.sanitize(p[f] || '');
+  $('samples').textContent = '';
+  (p.samples && p.samples.length ? p.samples : [{ input: '', output: '' }]).forEach((s) => addSample(s));
+  $('form-title').textContent = currentId ? `Editing ${ProblemView.starsText(level)} · Problem ${p.number}` : 'New problem';
+  $('delete').hidden = !currentId;
+  updateNumberHint();
+  setDirty(false);
+  renderPreview();
+  $('form-pane').scrollTop = 0;
+}
+
+let previewTimer;
+function renderPreview() { ProblemView.renderProblem($('preview'), collect(), { hint: { mode: 'preview' } }); }
+function setDirty(d) { dirty = d; $('actions').classList.toggle('dirty', d); $('save-hint').textContent = d ? 'Unsaved changes · Ctrl+S to save' : 'Ctrl+S to save'; }
+function changed() {
+  setDirty(true);
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(renderPreview, 250);
+  if (selImg) requestAnimationFrame(positionFrame);
+}
+$('form-pane').addEventListener('input', (e) => { if (!e.target.closest('.rich')) changed(); });
+function confirmLeave() { return !dirty || confirm('You have unsaved changes. Discard them?'); }
+window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+async function refreshList(selectId) {
+  list = await api('GET', 'api/problems');
+  const sel = $('problem-select');
+  sel.textContent = '';
+  const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '— New problem —'; sel.appendChild(o0);
+  for (const lv of ProblemView.LEVELS) {
+    const inLevel = list.filter((p) => ProblemView.normalizeLevel(p.difficulty) === lv);
+    if (!inLevel.length) continue;
+    const g = document.createElement('optgroup');
+    g.label = ProblemView.starsText(lv);
+    for (const p of inLevel) {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = `${ProblemView.starsText(lv)}  ${p.number}. ${p.name}`;
+      g.appendChild(o);
+    }
+    sel.appendChild(g);
+  }
+  sel.value = selectId || '';
+}
+async function openProblem(id) {
+  if (!id) {
+    currentId = null;
+    $('problem-select').value = '';
+    fill({ number: nextNumber(level), difficulty: level, timeLimit: 1, memoryLimit: 256 });
+    resetSuites();
+    numberAuto = true;
+    $('f-name').focus();
+    return;
+  }
+  const base = 'api/problems/' + encodeURIComponent(id);
+  const [p, team, p1, p2] = await Promise.all([
+    api('GET', base),
+    api('GET', base + '/tests?suite=team'),
+    api('GET', base + '/tests?suite=p1'),
+    api('GET', base + '/tests?suite=p2'),
+  ]);
+  mode = p.mode === 'coop' ? 'coop' : 'solo';
+  resetSuites({ team, p1, p2 });
+  numberAuto = false;
+  currentId = id;
+  $('problem-select').value = id;
+  $('view-site').href = './#problem=' + encodeURIComponent(id);
+  fill(p);
+}
+$('problem-select').addEventListener('change', (e) => {
+  if (!confirmLeave()) { e.target.value = currentId || ''; return; }
+  openProblem(e.target.value);
+});
+$('new-btn').addEventListener('click', () => { if (confirmLeave()) openProblem(null); });
+
+async function save() {
+  const p = collect();
+  if (!p.number) { toast('Please give the problem a number.'); $('f-number').focus(); return; }
+  if (!p.name) { toast('Please give the problem a name.'); $('f-name').focus(); return; }
+  $('save').disabled = true;
+  try {
+    const saved = currentId ? await api('PUT', 'api/problems/' + encodeURIComponent(currentId), p) : await api('POST', 'api/problems', p);
+    currentId = saved.id;
+    for (const suite of dirtySuites) {
+      await api('PUT', 'api/problems/' + encodeURIComponent(saved.id) + '/tests?suite=' + suite, { tests: suites[suite] });
+    }
+    dirtySuites.clear();
+    testsDirty = false;
+    numberAuto = false;
+    await refreshList(saved.id);
+    $('form-title').textContent = `Editing ${ProblemView.starsText(saved.difficulty)} · Problem ${saved.number}`;
+    $('delete').hidden = false;
+    $('view-site').href = './#problem=' + encodeURIComponent(saved.id);
+    setDirty(false);
+    toast(`Saved ✓ · ${totalTestCount()} test case${totalTestCount() === 1 ? '' : 's'}`);
+  } catch (e) { if (e.message !== 'auth') toast(e.message); }
+  finally { $('save').disabled = false; }
+}
+$('save').addEventListener('click', save);
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !$('admin').hidden) { e.preventDefault(); save(); }
+});
+$('delete').addEventListener('click', async () => {
+  if (!currentId || !confirm('Delete this problem? This cannot be undone.')) return;
+  try {
+    await api('DELETE', 'api/problems/' + encodeURIComponent(currentId));
+    setDirty(false);
+    await refreshList();
+    toast('Problem deleted');
+    openProblem(list[0] ? list[0].id : null);
+  } catch (e) { if (e.message !== 'auth') toast(e.message); }
+});
+
+async function startAdmin() {
+  showAdmin(true);
+  await refreshList();
+  const fromHash = new URLSearchParams(location.hash.slice(1)).get('problem');
+  const first = list.find((p) => p.id === fromHash) || list[0];
+  await openProblem(first ? first.id : null);
+}
+
+(async () => {
+  if (adminKey && await tryLogin(adminKey).catch(() => false)) startAdmin();
+  else { showAdmin(false); $('password').focus(); }
+})();
+</script>
+</body>
+</html>
