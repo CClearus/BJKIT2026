@@ -42,17 +42,13 @@
   .mode-picker button[aria-checked="true"] { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
   .coop-only { display: none; }
   .is-coop .coop-only { display: block; }
-  .coop-intro { font-size: .84rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; margin-bottom: 10px; }
-  .coop-intro b { color: var(--text); }
   .code-label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+  .code-label small { display: block; font-weight: 400; font-size: .74rem; margin-top: 1px; }
   .code-label .sb-file { font: 600 .8rem var(--font-mono); color: var(--accent); }
   .code-input {
     width: 100%; resize: vertical; font: 13px/1.55 var(--font-mono); tab-size: 4;
     background: var(--code-bg); color: var(--syn-text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
   }
-  .obj-head { font: 700 .74rem var(--font-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--pc); margin: 14px 0 2px; padding-top: 10px; border-top: 1px dashed var(--border); }
-  .role-title + .obj-head { border-top: 0; padding-top: 0; margin-top: 4px; }
-  .obj-head small { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); margin-left: 6px; }
   .player-samples .sample { margin-bottom: 8px; }
   .add-psample { margin-bottom: 4px; }
   .code-box .CodeMirror { height: auto; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
@@ -68,11 +64,159 @@
   .suite-picker button[data-suite="p1"][aria-selected="true"] { background: color-mix(in srgb, var(--p1) 15%, transparent); border-color: var(--p1); }
   .suite-picker button[data-suite="p2"][aria-selected="true"] { background: color-mix(in srgb, var(--p2) 15%, transparent); border-color: var(--p2); }
   .suite-picker .count { font-size: .7rem; background: var(--surface-2); border-radius: 999px; padding: 0 6px; margin-left: 3px; }
-  .roles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-  .role-col { --pc: var(--p1); border-top: 3px solid var(--pc); padding-top: 8px; min-width: 0; }
-  .role-col.pl2 { --pc: var(--p2); }
-  .role-title { font-weight: 700; color: var(--pc); margin-bottom: 6px; }
-  @media (max-width: 1400px) { .roles-grid { grid-template-columns: 1fr; } }
+  .suite-desc { font-size: .8rem; color: var(--muted); margin: -2px 0 10px; }
+  .suite-desc b { color: var(--text); }
+  .suite-desc .p1 { color: var(--p1); font-weight: 600; } .suite-desc .p2 { color: var(--p2); font-weight: 600; }
+
+  /* ---------- co-op setup ---------- */
+  .coop-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .cc-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; font-size: .88rem; }
+  .cc-head small { color: var(--muted); font-size: .76rem; }
+  .cc-score { margin-left: auto; font: 600 .76rem var(--font-mono); color: var(--muted); }
+  .cc-score.done { color: var(--ok); }
+  .cc-note { margin: 10px 0 0; font-size: .76rem; color: var(--muted); }
+
+  /* how the program is put together */
+  .flow { display: grid; gap: 7px; }
+  .flow-row { display: grid; grid-template-columns: 128px minmax(0, 1fr); align-items: center; gap: 10px; }
+  .flow-name { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  .flow-name small { font: 600 .68rem var(--font-mono); padding: 1px 7px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+  .flow-name small.zero { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); }
+  .flow-parts { display: flex; min-width: 0; }
+  .piece {
+    --pc: var(--accent); flex: 1; min-width: 0; text-align: left; padding: 7px 12px; font-size: .8rem; font-weight: 600;
+    color: var(--pc); background: color-mix(in srgb, var(--pc) 11%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--pc) 40%, var(--border)); border-radius: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .piece:first-child { border-radius: 8px 0 0 8px; }
+  .piece:last-child { border-radius: 0 8px 8px 0; border-left: 2px dashed color-mix(in srgb, var(--pc) 40%, var(--border)); }
+  .piece:hover { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 18%, var(--surface)); }
+  .piece:active { transform: none; }
+  .piece.p1 { --pc: var(--p1); } .piece.p2 { --pc: var(--p2); }
+  .piece.harness { --pc: var(--muted); background: repeating-linear-gradient(135deg, var(--surface-2) 0 6px, var(--surface) 6px 12px); }
+  .piece.empty { --pc: var(--err); }
+  .piece.empty::after { content: " · empty"; font-weight: 500; }
+
+  /* checklist */
+  .checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .checklist li { display: flex; align-items: center; gap: 10px; font-size: .84rem; padding: 5px 8px; border-radius: 8px; animation: popIn .2s ease-out; }
+  .checklist .ic { flex: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font: 700 .68rem/1 var(--font-ui); }
+  .checklist .ok .ic { color: var(--ok); background: color-mix(in srgb, var(--ok) 18%, transparent); }
+  .checklist .ok { color: var(--muted); }
+  .checklist .todo .ic { color: var(--muted); border: 1.5px dashed color-mix(in srgb, var(--muted) 60%, transparent); }
+  .checklist .warn .ic { color: var(--warn); background: color-mix(in srgb, var(--warn) 20%, transparent); }
+  .checklist .bad .ic { color: var(--err); background: color-mix(in srgb, var(--err) 18%, transparent); }
+  .checklist .bad { background: color-mix(in srgb, var(--err) 7%, transparent); }
+  .checklist .warn { background: color-mix(in srgb, var(--warn) 6%, transparent); }
+  .checklist .fix { margin-left: auto; flex: none; padding: 2px 10px; font-size: .76rem; }
+  .check-run { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .check-run small { color: var(--muted); font-size: .76rem; }
+
+  /* check results */
+  .check-results { margin-top: 12px; display: grid; gap: 8px; transition: opacity .2s; }
+  .check-results.stale { opacity: .55; }
+  .check-results .stale-note { font-size: .76rem; color: var(--warn); }
+  .cr-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: .82rem; }
+  .cr-row .cr-name { font-weight: 600; }
+  .cr-row .cr-name.p1 { color: var(--p1); } .cr-row .cr-name.p2 { color: var(--p2); }
+  .cr-row .cr-sum { font: 600 .76rem var(--font-mono); color: var(--muted); }
+  .cr-row .cr-sum.ok { color: var(--ok); } .cr-row .cr-sum.err { color: var(--err); }
+  .cr-marks { display: flex; flex-wrap: wrap; gap: 2px; font: 700 .74rem/1 var(--font-mono); min-width: 0; }
+  .cr-marks button {
+    --c: var(--muted); width: 1.5em; height: 1.6em; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 4px; font: inherit; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  }
+  .cr-marks button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--c); }
+  .cr-marks .m-P { --c: var(--ok); } .cr-marks .m-F { --c: var(--err); } .cr-marks .m-T { --c: var(--lv3); }
+  .cr-marks .m-X { --c: var(--lv5); } .cr-marks .m-Q { --c: var(--accent); } .cr-marks .m-S, .cr-marks .m-O { --c: var(--muted); }
+  .cr-msg { font-size: .8rem; color: var(--muted); }
+  .cr-msg.err { color: var(--err); }
+  .cr-detail { border: 1px solid var(--border); border-radius: 8px; background: var(--code-bg); padding: 8px 10px; font-size: .78rem; animation: popIn .15s ease-out; }
+  .cr-detail .cd-title { font-weight: 600; margin-bottom: 6px; }
+  .cr-detail .cd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .cr-detail label { display: block; font-size: .7rem; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+  .cr-detail pre { margin: 0; max-height: 160px; overflow: auto; font: 12px/1.45 var(--font-mono); white-space: pre-wrap; word-break: break-word; }
+  .cr-detail pre.compile { max-height: 220px; color: var(--err); }
+  .cr-fill { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); padding-top: 4px; }
+
+  /* one player at a time */
+  .player-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 16px; }
+  .ps {
+    --pc: var(--p1); position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+    padding: 9px 14px; border-radius: 12px 12px 0 0; border: 1px solid var(--border); border-bottom: 0;
+    background: var(--surface-2); color: var(--muted); font-weight: 700; text-align: left;
+  }
+  .ps.pl2 { --pc: var(--p2); }
+  .ps small { font-weight: 500; font-size: .74rem; color: var(--muted); }
+  .ps:hover { color: var(--pc); border-color: var(--border); }
+  .ps:active { transform: none; }
+  .ps[aria-selected="true"] { background: var(--surface); color: var(--pc); box-shadow: inset 0 3px 0 var(--pc); }
+  .ps .warn-dot { position: absolute; top: 12px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: none; }
+  .ps.has-warn .warn-dot { display: block; }
+  .player-panel { --pc: var(--p1); background: var(--surface); border: 1px solid var(--border); border-top: 0; border-radius: 0 0 12px 12px; padding: 2px 14px 16px; }
+  .player-panel.pl2 { --pc: var(--p2); }
+  .pp-sec h4 { margin: 14px 0 2px; font: 700 .74rem var(--font-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--pc); }
+  .pp-sec h4 small { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); margin-left: 6px; }
+  .pp-sec + .pp-sec { border-top: 1px dashed var(--border); margin-top: 16px; }
+  .code-field { border-radius: 10px; transition: box-shadow .4s, background-color .4s; }
+  .code-field.flash { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 35%, transparent); background: color-mix(in srgb, var(--pc) 6%, transparent); }
+  .secret { display: inline-block; font: 600 .66rem var(--font-ui); color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 99px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; }
+  .seam { display: flex; align-items: center; gap: 8px; margin: 4px 0; font: 600 .72rem var(--font-mono); color: var(--pc); white-space: nowrap; }
+  .seam::before, .seam::after { content: ""; flex: 1; border-top: 1px dashed color-mix(in srgb, var(--pc) 55%, var(--border)); }
+  .code-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .code-tools button { padding: 3px 10px; font-size: .78rem; }
+
+  /* "Test" under each solution: compile result with lines from that box, then that player's tests */
+  .sol-result { margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--code-bg); padding: 8px 10px; font-size: .8rem; animation: popIn .15s ease-out; }
+  .sol-result .sr-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; font-weight: 600; }
+  .sol-result.ok .sr-head { color: var(--ok); }
+  .sol-result.err .sr-head { color: var(--err); }
+  .sol-result.busy .sr-head { color: var(--muted); }
+  .sol-result .sr-note { font-weight: 400; color: var(--muted); }
+  .sol-result ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; font: 12px/1.5 var(--font-mono); max-height: 220px; overflow: auto; }
+  .sol-result li { white-space: pre-wrap; word-break: break-word; color: var(--syn-text); }
+  .sol-result li .ln { font-weight: 700; margin-right: 6px; }
+  .sol-result li.error .ln { color: var(--err); } .sol-result li.warning .ln { color: var(--warn); } .sol-result li.note .ln { color: var(--muted); }
+  .sol-result .cr-marks { margin-top: 6px; }
+  .sol-err-line { background: color-mix(in srgb, var(--err) 16%, transparent); }
+  .sol-warn-line { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+
+  /* ---------- clans panel ---------- */
+  .clans-back { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .55); animation: popIn .15s ease-out; }
+  .clans-modal { width: min(1000px, 100%); max-height: min(92vh, 960px); overflow: auto; padding: 18px 20px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, .4); }
+  .cm-head { display: flex; align-items: center; gap: 10px; }
+  .cm-head h2 { margin: 0; font-size: 1.15rem; }
+  .cm-head .spacer { flex: 1; }
+  .cm-sub { margin: 4px 0 14px; color: var(--muted); font-size: .84rem; }
+  .playing-as { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: .86rem; }
+  .playing-as img { width: 24px; height: 24px; padding: 3px; border-radius: 6px; background: var(--clan); }
+  .playing-as .spacer { flex: 1; }
+  .clan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  .clan-card { --clan: var(--accent); overflow: hidden; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); transition: box-shadow .2s, transform .2s; }
+  .clan-card.active { box-shadow: 0 0 0 2px var(--clan), 0 10px 30px color-mix(in srgb, var(--clan) 25%, transparent); }
+  .cc-top {
+    position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 16px; color: #fff;
+    background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .09) 0 2px, transparent 2px 7px), var(--clan);
+  }
+  .cc-top img { width: 56px; height: 56px; flex: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .18)); }
+  .cc-top .nm b { display: block; font-size: 1.1rem; text-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+  .cc-top .nm small { font-size: .82rem; opacity: .95; text-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+  .cc-top .no { position: absolute; top: 9px; right: 12px; font: 600 .6rem var(--font-mono); letter-spacing: .3em; opacity: .9; }
+  .cc-top .here { position: absolute; bottom: 9px; right: 12px; font: 700 .64rem var(--font-ui); letter-spacing: .1em; text-transform: uppercase; background: rgba(0, 0, 0, .22); padding: 2px 8px; border-radius: 99px; }
+  .cc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 12px 16px 2px; }
+  .cc-stats b { display: block; font: 700 1.15rem var(--font-mono); }
+  .cc-stats b.score { color: color-mix(in srgb, var(--clan) 70%, var(--text)); }
+  .cc-stats span { font-size: .7rem; color: var(--muted); }
+  .cc-actions { display: flex; gap: 6px; padding: 10px 16px 14px; }
+  .cc-actions .play { flex: 1; }
+  .scoring { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .scoring b { color: var(--text); font-family: var(--font-mono); }
+  @media (max-width: 560px) {
+    .flow-row, .cr-row { grid-template-columns: 1fr; gap: 4px; }
+    .cr-detail .cd-grid { grid-template-columns: 1fr; }
+  }
   .lv-chip {
     --chip: var(--accent);
     display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px;
@@ -224,6 +368,7 @@
     <button id="new-btn">＋ New problem</button>
   </span>
   <span class="spacer"></span>
+  <button id="clans-btn" title="Every clan's score and progress; play as a clan to test">&#127984; Clans</button>
   <a class="btn" href="./" id="view-site">View site ↗</a>
   <button id="reset-progress" title="Clear solved marks, hints and saved code in this browser (for testing)">↺ Reset my progress</button>
   <button id="logout" hidden>Log out</button>
@@ -287,53 +432,131 @@
     </div>
 
     <div class="block coop-only" id="coop-block">
-      <div class="head"><h3>Co-op setup</h3><small>one continuous <code>main.c</code>: Player 1's code, then Player 2's</small></div>
-      <div class="coop-intro">
-        The program is <b>one file</b>: Player 1 writes the top (the <code>#include</code>s and the start of <code>main()</code>),
-        and Player 2 carries on right after it, using Player 1's variables. Player 2's line numbers continue from Player 1's.
-        <br>Each player has their <b>own hidden tests</b> (set them in the Test cases tab), so one player can't do all the work.
-        <br>The <code>#include &lt;…&gt;</code> lines at the top of Player 1's starter are shown greyed out and locked.
-      </div>
+      <div class="head"><h3>Co-op setup</h3><small>Player 1 writes the top of <code>main.c</code>; Player 2 carries on right after it, using Player 1's variables</small></div>
       <textarea id="f-shared" hidden></textarea>
-      <div class="roles-grid">
-        <div class="role-col pl1">
-          <div class="role-title">Player 1 · top of main.c</div>
-          <div class="obj-head">Objective <small>shown on the sheet under "Player 1"</small></div>
-          <label class="code-label">Explanation</label>
-          <div class="rich" data-field="p1Task"></div>
+
+      <!-- how each set of tests is built -->
+      <div class="coop-card">
+        <div class="cc-head"><b>How the program is put together</b><small>Click a piece to edit it</small></div>
+        <div class="flow">
+          <div class="flow-row">
+            <span class="flow-name">Team tests <small data-count="team">0</small></span>
+            <div class="flow-parts">
+              <button type="button" class="piece p1" data-jump="p1:starter" data-code="f-p1starter">Player 1's code</button>
+              <button type="button" class="piece p2" data-jump="p2:starter" data-code="f-p2starter">Player 2's code</button>
+            </div>
+          </div>
+          <div class="flow-row">
+            <span class="flow-name">Player 1 tests <small data-count="p1">0</small></span>
+            <div class="flow-parts">
+              <button type="button" class="piece p1" data-jump="p1:starter" data-code="f-p1starter">Player 1's code</button>
+              <button type="button" class="piece harness" data-jump="p1:helper" data-code="f-p1helper">Your test ending</button>
+            </div>
+          </div>
+          <div class="flow-row">
+            <span class="flow-name">Player 2 tests <small data-count="p2">0</small></span>
+            <div class="flow-parts">
+              <button type="button" class="piece harness" data-jump="p2:helper" data-code="f-p2helper">Your test start</button>
+              <button type="button" class="piece p2" data-jump="p2:starter" data-code="f-p2starter">Player 2's code</button>
+            </div>
+          </div>
+        </div>
+        <p class="cc-note">Each player is also tested on their own, joined to your code, so one player can't do both parts.</p>
+      </div>
+
+      <!-- live checklist + one-click check -->
+      <div class="coop-card">
+        <div class="cc-head"><b>Checklist</b><span class="cc-score" id="cl-score"></span></div>
+        <ul class="checklist" id="checklist"></ul>
+        <div class="check-run">
+          <button type="button" class="primary" id="run-check">&#9654; Check with my solution</button>
+          <small>Runs your solution on every hidden test (saved or not), in all three sets.</small>
+        </div>
+        <div class="check-results" id="check-results" hidden></div>
+      </div>
+
+      <!-- one player at a time -->
+      <div class="player-switch" role="tablist" aria-label="Player">
+        <button type="button" class="ps pl1" role="tab" data-player="1" aria-selected="true">Player 1<small>writes the top of main.c</small><i class="warn-dot" title="Something to fix here"></i></button>
+        <button type="button" class="ps pl2" role="tab" data-player="2" aria-selected="false">Player 2<small>continues main.c</small><i class="warn-dot" title="Something to fix here"></i></button>
+      </div>
+
+      <div class="player-panel pl1" data-panel="1" role="tabpanel">
+        <section class="pp-sec">
+          <h4>On the problem sheet <small>what Player 1 reads, under "Player 1"</small></h4>
+          <div class="code-field" data-jump-target="p1:task">
+            <label class="code-label">Objective</label>
+            <div class="rich" data-field="p1Task"></div>
+          </div>
           <label class="code-label">Output</label>
           <div class="rich" data-field="p1Output"></div>
           <label class="code-label">Examples</label>
           <div class="player-samples" id="p1-samples"></div>
-          <button type="button" class="add-psample" data-list="p1-samples">＋ Add example</button>
-          <label class="code-label">Hint <small class="helper-note" style="display:inline">only Player 1 sees it, after using a hint on the Player 1 view</small></label>
+          <button type="button" class="add-psample" data-list="p1-samples">&#65291; Add example</button>
+          <label class="code-label">Hint <small>only Player 1 sees it, after using a hint on the Player 1 view</small></label>
           <div class="rich" data-field="p1Hint"></div>
-          <div class="obj-head">Code</div>
-          <label class="code-label">Starter code</label>
-          <div class="code-box"><textarea class="code-input" id="f-p1starter" spellcheck="false"></textarea></div>
-          <label class="code-label">Test ending for Player 1's own tests</label>
-          <small class="helper-note">Put <b>after</b> Player 1's code. Usually prints Player 1's variables and closes <code>main()</code>.</small>
-          <div class="code-box"><textarea class="code-input" id="f-p1helper" spellcheck="false"></textarea></div>
-        </div>
-        <div class="role-col pl2">
-          <div class="role-title">Player 2 · continues main.c</div>
-          <div class="obj-head">Objective <small>shown on the sheet under "Player 2"</small></div>
-          <label class="code-label">Explanation</label>
-          <div class="rich" data-field="p2Task"></div>
+        </section>
+        <section class="pp-sec">
+          <h4>Code</h4>
+          <div class="code-field" data-jump-target="p1:starter">
+            <label class="code-label">Starter code <small>what Player 1 sees at the start. The <code>#include</code> lines are locked for them.</small></label>
+            <div class="code-box"><textarea class="code-input" id="f-p1starter" spellcheck="false"></textarea></div>
+          </div>
+          <div class="code-field" data-jump-target="p1:solution">
+            <label class="code-label">Your solution <span class="secret">&#128274; players never see this</span> <small>Player 1's part, finished. Used by "Check with my solution".</small></label>
+            <div class="code-box"><textarea class="code-input" id="f-p1solution" spellcheck="false"></textarea></div>
+            <div class="code-tools">
+              <button type="button" class="primary" data-test-solution="1" title="Compile your Player 1 solution and run Player 1's tests">&#9654; Test</button>
+              <button type="button" data-copy-from="f-p1starter" data-copy-to="f-p1solution">Start from the starter code</button>
+            </div>
+            <div class="sol-result" id="sol-result-1" hidden></div>
+          </div>
+          <div class="code-field harness" data-jump-target="p1:helper">
+            <label class="code-label">Test ending <span class="secret">&#128274; players never see this</span> <small>Used only in Player 1's tests: it runs right after Player 1's code. Print what Player 1 must set up, then close <code>main()</code>.</small></label>
+            <div class="seam">Player 1's code ends here &#8593;</div>
+            <div class="code-box"><textarea class="code-input" id="f-p1helper" spellcheck="false"></textarea></div>
+            <div class="code-tools"><button type="button" id="p1helper-template">Insert a template</button></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="player-panel pl2" data-panel="2" role="tabpanel" hidden>
+        <section class="pp-sec">
+          <h4>On the problem sheet <small>what Player 2 reads, under "Player 2"</small></h4>
+          <div class="code-field" data-jump-target="p2:task">
+            <label class="code-label">Objective</label>
+            <div class="rich" data-field="p2Task"></div>
+          </div>
           <label class="code-label">Output</label>
           <div class="rich" data-field="p2Output"></div>
           <label class="code-label">Examples</label>
           <div class="player-samples" id="p2-samples"></div>
-          <button type="button" class="add-psample" data-list="p2-samples">＋ Add example</button>
-          <label class="code-label">Hint <small class="helper-note" style="display:inline">only Player 2 sees it, after using a hint on the Player 2 view</small></label>
+          <button type="button" class="add-psample" data-list="p2-samples">&#65291; Add example</button>
+          <label class="code-label">Hint <small>only Player 2 sees it, after using a hint on the Player 2 view</small></label>
           <div class="rich" data-field="p2Hint"></div>
-          <div class="obj-head">Code</div>
-          <label class="code-label">Starter code (no #include lines)</label>
-          <div class="code-box"><textarea class="code-input" id="f-p2starter" spellcheck="false"></textarea></div>
-          <label class="code-label">Test start for Player 2's own tests</label>
-          <small class="helper-note">Put <b>before</b> Player 2's code. Usually your working version of Player 1's part, so Player 2 can be tested even if Player 1 isn't finished.</small>
-          <div class="code-box"><textarea class="code-input" id="f-p2helper" spellcheck="false"></textarea></div>
-        </div>
+        </section>
+        <section class="pp-sec">
+          <h4>Code</h4>
+          <div class="code-field" data-jump-target="p2:starter">
+            <label class="code-label">Starter code <small>what Player 2 sees at the start (no <code>#include</code> lines: those are in Player 1's part)</small></label>
+            <div class="code-box"><textarea class="code-input" id="f-p2starter" spellcheck="false"></textarea></div>
+          </div>
+          <div class="code-field" data-jump-target="p2:solution">
+            <label class="code-label">Your solution <span class="secret">&#128274; players never see this</span> <small>Player 2's part, finished. Used by "Check with my solution".</small></label>
+            <div class="code-box"><textarea class="code-input" id="f-p2solution" spellcheck="false"></textarea></div>
+            <div class="code-tools">
+              <button type="button" class="primary" data-test-solution="2" title="Compile your Player 2 solution and run Player 2's tests">&#9654; Test</button>
+              <button type="button" data-copy-from="f-p2starter" data-copy-to="f-p2solution">Start from the starter code</button>
+            </div>
+            <div class="sol-result" id="sol-result-2" hidden></div>
+          </div>
+          <div class="code-field harness" data-jump-target="p2:helper">
+            <label class="code-label">Test start <span class="secret">&#128274; players never see this</span> <small>Used only in Player 2's tests: it runs right before Player 2's code, so Player 2 can be tested even if Player 1 isn't done. Usually your finished Player 1 part.</small></label>
+            <div class="code-box"><textarea class="code-input" id="f-p2helper" spellcheck="false"></textarea></div>
+            <div class="seam">&#8595; Player 2's code starts here</div>
+            <div class="code-tools"><button type="button" data-copy-from="f-p1solution" data-copy-to="f-p2helper">Use my Player 1 solution</button></div>
+          </div>
+        </section>
       </div>
     </div>
     <div class="block">
@@ -359,19 +582,20 @@
       <div class="tests-intro">
         <b>Hidden test cases.</b> Students never see these. When they press <b>Submit</b>, their program runs on every test
         (with this problem's time limit) and the output is compared with yours, ignoring trailing spaces and blank lines at the end.
-        <span class="coop-only-inline"><br><b>Co-op:</b> <i>Team</i> tests check the whole program (both files together).
-        <i>Player 1</i> / <i>Player 2</i> tests check each player's own part using the test ending / test start from the Problem tab;
-        their results show as <code>PPF…</code> next to that player's code.</span>
+        <span class="coop-only-inline"><br><b>Co-op:</b> there are three sets. Players only clear the problem when all three pass;
+        each player's own results show as <code>PPF…</code> next to their code.</span>
       </div>
       <div class="suite-picker" id="suite-picker" role="tablist" aria-label="Which tests">
         <button type="button" data-suite="team" aria-selected="true">Team <span class="count" data-count="team">0</span></button>
         <button type="button" data-suite="p1" aria-selected="false">Player 1 <span class="count" data-count="p1">0</span></button>
         <button type="button" data-suite="p2" aria-selected="false">Player 2 <span class="count" data-count="p2">0</span></button>
       </div>
+      <p class="suite-desc coop-only" id="suite-desc"></p>
       <div class="tests-toolbar">
         <button type="button" id="add-test">＋ Add test</button>
         <button type="button" id="upload-tests" title="Pick .in and .out (or .ans) files; 1.in pairs with 1.out">⬆ Upload files</button>
         <button type="button" id="copy-examples" title="Add the examples from the Problem tab as tests">⧉ Copy examples</button>
+        <button type="button" class="coop-only-inline" id="fill-outputs" title="Run your solution and use what it prints as the expected output of every test that has none">&#10024; Fill outputs from my solution</button>
         <span class="spacer"></span>
         <button type="button" class="danger" id="clear-tests">Delete all</button>
       </div>
@@ -410,6 +634,22 @@
 <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
 <div class="toast" id="toast"></div>
 
+<!-- clans: every clan's score and progress; "Play as" makes this browser play for a clan (for testing) -->
+<div class="clans-back" id="clans-back" hidden>
+  <div class="clans-modal" role="dialog" aria-modal="true" aria-labelledby="clans-title">
+    <div class="cm-head">
+      <h2 id="clans-title">Clans</h2>
+      <span class="spacer"></span>
+      <a class="btn" href="./" target="_blank">Open the map ↗</a>
+      <button type="button" class="icon-btn" id="clans-close" aria-label="Close">✕</button>
+    </div>
+    <p class="cm-sub">Progress, score, hints and code are shared by everyone in a clan. Players will be put in their clan by the roster later; for now use <b>Play as</b> to test a clan in this browser.</p>
+    <div class="playing-as" id="playing-as"></div>
+    <div class="clan-grid" id="clan-grid"></div>
+    <div class="scoring" id="scoring"></div>
+  </div>
+</div>
+
 <template id="rich-template">
   <div class="rich-toolbar">
     <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
@@ -445,6 +685,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/sublime.min.js"></script>
 <script src="js/code-editor.js"></script>
 <script src="js/problem-view.js"></script>
+<script src="js/clan.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const session = {
@@ -910,10 +1151,17 @@ let suites = { team: [], p1: [], p2: [] }, currentSuite = 'team';
 const dirtySuites = new Set();
 let tests = suites.team, testsDirty = false;
 const totalTestCount = () => suites.team.length + (mode === 'coop' ? suites.p1.length + suites.p2.length : 0);
+// What each set of tests compiles and runs (co-op only).
+const SUITE_DESC = {
+  team: 'Runs <span class="p1">Player 1\'s code</span> + <span class="p2">Player 2\'s code</span> as one program, and checks the final answer.',
+  p1: 'Runs <span class="p1">Player 1\'s code</span> + your <b>Test ending</b>. The expected output is whatever your Test ending prints.',
+  p2: 'Runs your <b>Test start</b> + <span class="p2">Player 2\'s code</span>, so Player 2 is checked on their own.',
+};
 function selectSuite(name) {
   currentSuite = name;
   tests = suites[name];
   for (const b of $('suite-picker').children) b.setAttribute('aria-selected', String(b.dataset.suite === name));
+  $('suite-desc').innerHTML = SUITE_DESC[name] || '';
   renderTests();
 }
 for (const b of $('suite-picker').children) b.addEventListener('click', () => selectSuite(b.dataset.suite));
@@ -987,7 +1235,7 @@ function testCard(t, i) {
       ta.spellcheck = false;
       ta.value = t[key];
       ta.className = key === 'input' ? 't-in' : 't-out';
-      ta.addEventListener('input', () => { t[key] = ta.value; updateSize(); testsDirty = true; dirtySuites.add(currentSuite); });
+      ta.addEventListener('input', () => { t[key] = ta.value; updateSize(); testsDirty = true; dirtySuites.add(currentSuite); setDirty(true); markCheckStale(); });
       cell.appendChild(ta);
     }
     grid.appendChild(cell);
@@ -1037,8 +1285,13 @@ $('add-test').addEventListener('click', () => {
 $('upload-tests').addEventListener('click', () => $('test-files').click());
 $('test-files').addEventListener('change', (e) => { const f = [...e.target.files]; e.target.value = ''; if (f.length) addTestFiles(f); });
 $('copy-examples').addEventListener('click', () => {
-  const samples = collect().samples;
-  if (!samples.length) { toast('This problem has no examples yet.'); return; }
+  // each set copies its own examples: the sheet's examples, or that player's examples
+  const c = collect();
+  const samples = currentSuite === 'p1' ? c.p1Samples : currentSuite === 'p2' ? c.p2Samples : c.samples;
+  if (!samples.length) {
+    toast(currentSuite === 'team' ? 'This problem has no examples yet.' : `Player ${currentSuite.slice(1)} has no examples yet.`);
+    return;
+  }
   tests.push(...samples.map((s) => ({ input: s.input, output: s.output })));
   renderTests(); testsChanged();
   toast(`Copied ${samples.length} example${samples.length === 1 ? '' : 's'}`);
@@ -1105,6 +1358,7 @@ function setMode(m) {
   if (mode === 'coop' && typeof refreshCodeBoxes === 'function') refreshCodeBoxes();
   if (mode !== 'coop' && typeof selectSuite === 'function' && currentSuite !== 'team') selectSuite('team');
   if (typeof updateTestCounts === 'function') updateTestCounts();
+  if (typeof refreshCoop === 'function') refreshCoop();
 }
 for (const b of $('f-mode').children) {
   b.addEventListener('click', () => {
@@ -1131,13 +1385,595 @@ for (const ta of document.querySelectorAll('.code-input')) {
   });
 }
 
+/* ---------- co-op setup: player tabs, jumping to a piece, checklist, check with my solution ---------- */
+let coopPlayer = '1';
+function showPlayer(n) {
+  coopPlayer = String(n);
+  for (const b of document.querySelectorAll('.ps')) b.setAttribute('aria-selected', String(b.dataset.player === coopPlayer));
+  for (const p of document.querySelectorAll('.player-panel')) p.hidden = p.dataset.panel !== coopPlayer;
+  refreshCodeBoxes();
+}
+for (const b of document.querySelectorAll('.ps')) b.addEventListener('click', () => showPlayer(b.dataset.player));
+
+// "p1:helper" -> open Player 1's tab, scroll to the Test ending, flash it and put the cursor in it
+function jumpTo(key) {
+  const [pl, what] = key.split(':');
+  showTab('problem');
+  showPlayer(pl.slice(1));
+  const field = document.querySelector(`[data-jump-target="${key}"]`);
+  if (!field) return;
+  requestAnimationFrame(() => {
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    field.classList.add('flash');
+    setTimeout(() => field.classList.remove('flash'), 1300);
+    const ed = codeEds[{ starter: `f-${pl}starter`, solution: `f-${pl}solution`, helper: `f-${pl}helper` }[what]];
+    if (ed) setTimeout(() => ed.focus(), 350);
+    else if (what === 'task') setTimeout(() => placeCaretAtEnd(rich[`${pl}Task`]), 350);
+  });
+}
+for (const b of document.querySelectorAll('[data-jump]')) b.addEventListener('click', () => jumpTo(b.dataset.jump));
+function openTests(suite) { showTab('tests'); selectSuite(suite); }
+
+// "Start from the starter code", "Use my Player 1 solution"
+for (const b of document.querySelectorAll('[data-copy-from]')) {
+  b.addEventListener('click', () => {
+    const from = getCode(b.dataset.copyFrom), to = b.dataset.copyTo;
+    if (!from.trim()) { toast(b.dataset.copyFrom === 'f-p1solution' ? 'Write your Player 1 solution first.' : 'The starter code is empty.'); return; }
+    if (getCode(to).trim() && getCode(to) !== from && !confirm('Replace what is already in this box?')) return;
+    setCodeBox(to, from);
+    changed();
+    toast('Copied ✓');
+  });
+}
+$('p1helper-template').addEventListener('click', () => {
+  const tpl = '    // Player 1\'s tests: print what Player 1 had to set up, e.g.\n    // printf("%.3f %.3f\\n", d, s);\n    return 0;\n}\n';
+  if (getCode('f-p1helper').trim() && !confirm('Replace the Test ending with a template?')) return;
+  setCodeBox('f-p1helper', tpl);
+  changed();
+  jumpTo('p1:helper');
+});
+
+// The checklist: worked out live from the form and the test sets.
+const CHECK_ICONS = { ok: '✓', todo: '', warn: '!', bad: '✕' };
+function coopChecks() {
+  const items = [];
+  const add = (state, text, player, fix) => items.push({ state, text, player, fix });
+  const code = (id) => getCode(id).trim();
+  for (const n of [1, 2]) {
+    if (ProblemView.isBlank(rich[`p${n}Task`].innerHTML)) add('todo', `Write Player ${n}'s objective`, n, ['Write it', () => jumpTo(`p${n}:task`)]);
+    else add('ok', `Player ${n} has an objective`, n);
+  }
+  const team = suites.team.length;
+  if (team) add('ok', `${team} team test${team === 1 ? '' : 's'}`);
+  else add('warn', 'No team tests yet', 0, ['Add tests', () => openTests('team')]);
+  for (const n of [1, 2]) {
+    const count = suites[`p${n}`].length, helper = code(`f-p${n}helper`);
+    const part = n === 1 ? 'Test ending' : 'Test start';
+    if (!count) add('warn', `No Player ${n} tests yet: Player ${3 - n} could do Player ${n}'s part for them`, n, ['Add tests', () => openTests(`p${n}`)]);
+    else if (!helper) add('bad', `Player ${n}'s ${count} test${count === 1 ? '' : 's'} can't compile: your ${part} is empty`, n, ['Write it', () => jumpTo(`p${n}:helper`)]);
+    else add('ok', `${count} Player ${n} test${count === 1 ? '' : 's'} + your ${part}`, n);
+  }
+  const s1 = code('f-p1solution'), s2 = code('f-p2solution');
+  if (!s1 || !s2) {
+    const n = !s1 ? 1 : 2;
+    add('todo', 'Add your solution for both players to check everything in one click', n, ['Write it', () => jumpTo(`p${n}:solution`)]);
+  } else if (!lastCheck || checkStale) {
+    add('todo', lastCheck ? 'Something changed: check again with your solution' : 'Check your setup with your solution', 0, ['Check', runCheck]);
+  } else {
+    const { passed, total, broken, empty } = checkSummary(lastCheck);
+    const failed = total - passed - empty;
+    const seeWhy = ['See why', () => $('check-results').scrollIntoView({ behavior: 'smooth', block: 'center' })];
+    if (!total) add('todo', 'No tests to check yet', 0);
+    else if (broken || failed) add('bad', broken ? 'Your solution doesn\'t compile in one of the sets' : `Your solution fails ${failed} of ${total} tests`, 0, seeWhy);
+    else if (empty) add('warn', `Your solution passes every test that has an answer; ${empty} still ${empty === 1 ? 'has' : 'have'} no expected output`, 0, ['Fill them', fillFromCheck]);
+    else add('ok', `Your solution passes all ${total} tests`);
+  }
+  return items;
+}
+function refreshCoop() {
+  if (mode !== 'coop') return;
+  // pieces of the diagram that are still empty
+  for (const p of document.querySelectorAll('.piece[data-code]')) p.classList.toggle('empty', !getCode(p.dataset.code).trim());
+  for (const el of document.querySelectorAll('.flow-name [data-count]')) el.classList.toggle('zero', !suites[el.dataset.count].length);
+
+  const items = coopChecks();
+  const box = $('checklist');
+  box.textContent = '';
+  for (const it of items) {
+    const li = document.createElement('li');
+    li.className = it.state;
+    li.innerHTML = '<span class="ic"></span><span class="tx"></span>';
+    li.querySelector('.ic').textContent = CHECK_ICONS[it.state];
+    li.querySelector('.tx').textContent = it.text;
+    if (it.fix) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'fix'; b.textContent = it.fix[0];
+      b.addEventListener('click', it.fix[1]);
+      li.appendChild(b);
+    }
+    box.appendChild(li);
+  }
+  const done = items.filter((i) => i.state === 'ok').length;
+  $('cl-score').textContent = `${done} / ${items.length} ready`;
+  $('cl-score').classList.toggle('done', done === items.length);
+  // a dot on a player's tab when something of theirs needs fixing
+  for (const b of document.querySelectorAll('.ps')) {
+    b.classList.toggle('has-warn', items.some((i) => String(i.player) === b.dataset.player && (i.state === 'warn' || i.state === 'bad')));
+  }
+}
+
+/* ---- check with my solution: run the three sets with the admin's own code ---- */
+// Marks: P passed · F wrong answer · T too slow · X crashed · Q no expected output yet · O printed too much · S too big to check here
+const CHECK_MARKS = {
+  P: 'Passed', F: 'Wrong answer', T: 'Too slow', X: 'Crashed / error exit',
+  Q: 'No expected output yet', O: 'Printed too much to check here', S: 'Input too big to check here',
+};
+const MAX_BATCH = 600 * 1024;        // raw input bytes per run request (the server caps request size)
+const joinParts = (top, bottom) => `${top}\n${bottom}`;
+const normOut = (s) => String(s).replace(/\r\n?/g, '\n').split('\n').map((l) => l.trimEnd()).join('\n').trimEnd();
+let lastCheck = null, checkStale = false, checking = false;
+
+function checkPlan() {
+  const s1 = getCode('f-p1solution'), s2 = getCode('f-p2solution');
+  return [
+    { suite: 'team', label: 'Team', code: joinParts(s1, s2) },
+    { suite: 'p1', label: 'Player 1', code: joinParts(s1, getCode('f-p1helper')) },
+    { suite: 'p2', label: 'Player 2', code: joinParts(getCode('f-p2helper'), s2) },
+  ];
+}
+// Run one set's tests through /api/run in batches; returns { marks[], got[] } or { compile } / { error }.
+async function checkSuite(code, list) {
+  const marks = new Array(list.length), got = new Array(list.length);
+  let batch = [], bytes = 0;
+  const flush = async () => {
+    if (!batch.length) return null;
+    const res = await fetch('api/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, lang: 'c', inputs: batch.map((i) => list[i].input) }),
+    });
+    const r = await res.json().catch(() => ({ ok: false, message: 'Bad reply from the server.' }));
+    if (!r.ok) return r.stage === 'compile' ? { compile: r.compileOutput || '(no message)' } : { error: r.message || 'Could not run.' };
+    r.runs.forEach((x, k) => {
+      const i = batch[k], want = list[i].output;
+      got[i] = x.stdout || '';
+      marks[i] = x.timedOut ? 'T' : x.truncated ? 'O' : x.exitCode !== 0 ? 'X'
+        : !want.trim() ? 'Q' : normOut(x.stdout) === normOut(want) ? 'P' : 'F';
+    });
+    batch = []; bytes = 0;
+    return null;
+  };
+  for (let i = 0; i < list.length; i++) {
+    const size = list[i].input.length;
+    if (size > MAX_BATCH) { marks[i] = 'S'; continue; }
+    if (batch.length && (batch.length >= 20 || bytes + size > MAX_BATCH)) { const stop = await flush(); if (stop) return stop; }
+    batch.push(i); bytes += size;
+  }
+  const stop = await flush();
+  return stop || { marks, got };
+}
+function checkSummary(check) {
+  let passed = 0, total = 0, broken = false, empty = 0;
+  for (const r of Object.values(check)) {
+    if (r.none) continue;
+    if (r.compile || r.error) { broken = true; total += r.count; continue; }
+    total += r.marks.length;
+    passed += r.marks.filter((m) => m === 'P').length;
+    empty += r.marks.filter((m) => m === 'Q').length;
+  }
+  return { passed, total, broken, empty };
+}
+async function runCheck() {
+  if (checking) return;
+  if (!getCode('f-p1solution').trim() || !getCode('f-p2solution').trim()) {
+    toast('Write your solution for both players first.');
+    jumpTo(!getCode('f-p1solution').trim() ? 'p1:solution' : 'p2:solution');
+    return;
+  }
+  checking = true;
+  const btn = $('run-check');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  const results = {};
+  try {
+    for (const { suite, label, code } of checkPlan()) {
+      const list = suites[suite];
+      btn.textContent = `Checking ${label}…`;
+      results[suite] = list.length ? { ...(await checkSuite(code, list)), count: list.length } : { none: true };
+      lastCheck = { ...results };
+      checkStale = false;
+      renderCheck();
+    }
+  } catch {
+    toast('Could not reach the server. Is it running?');
+  } finally {
+    checking = false;
+    btn.disabled = false; btn.innerHTML = '&#9654; Check with my solution';
+    refreshCoop();
+  }
+}
+$('run-check').addEventListener('click', runCheck);
+
+let openDetail = null;   // "suite:index" of the mark whose details are shown
+function renderCheck() {
+  const box = $('check-results');
+  box.textContent = '';
+  box.hidden = !lastCheck;
+  if (!lastCheck) return;
+  box.classList.toggle('stale', checkStale);
+  if (checkStale) {
+    const n = document.createElement('div');
+    n.className = 'stale-note';
+    n.textContent = 'Something changed since this check. Run it again to be sure.';
+    box.appendChild(n);
+  }
+  for (const { suite, label } of checkPlan()) {
+    const r = lastCheck[suite];
+    if (!r) continue;
+    const row = document.createElement('div');
+    row.className = 'cr-row';
+    const name = document.createElement('span');
+    name.className = 'cr-name ' + (suite === 'team' ? '' : suite);
+    name.textContent = label;
+    const mid = document.createElement('div');
+    const sum = document.createElement('span');
+    sum.className = 'cr-sum';
+    if (r.none) {
+      mid.className = 'cr-msg'; mid.textContent = 'No tests in this set';
+    } else if (r.compile) {
+      mid.className = 'cr-msg err';
+      mid.textContent = suite === 'team' ? 'Your two solutions don\'t compile together' : `Doesn't compile (check your ${suite === 'p1' ? 'solution + Test ending' : 'Test start + solution'})`;
+      sum.className = 'cr-sum err'; sum.textContent = 'compile error';
+    } else if (r.error) {
+      mid.className = 'cr-msg err'; mid.textContent = r.error;
+    } else {
+      mid.className = 'cr-marks';
+      r.marks.forEach((m, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'm-' + m; b.textContent = m;
+        b.title = `Test ${i + 1}: ${CHECK_MARKS[m]}`;
+        b.setAttribute('aria-pressed', String(openDetail === `${suite}:${i}`));
+        b.addEventListener('click', () => { openDetail = openDetail === `${suite}:${i}` ? null : `${suite}:${i}`; renderCheck(); });
+        mid.appendChild(b);
+      });
+      // tests with no expected output yet don't count against the solution
+      const passed = r.marks.filter((m) => m === 'P').length, empty = r.marks.filter((m) => m === 'Q').length;
+      const graded = r.marks.length - empty;
+      sum.className = 'cr-sum ' + (passed === graded ? 'ok' : 'err');
+      sum.textContent = `${passed} / ${graded}` + (empty ? ` · ${empty} no answer` : '');
+    }
+    row.append(name, mid, sum);
+    box.appendChild(row);
+
+    // details under the row: the compile message, or one test's input / expected / what your solution printed
+    if (r.compile) {
+      const d = document.createElement('div');
+      d.className = 'cr-detail';
+      d.innerHTML = '<pre class="compile"></pre>';
+      d.querySelector('pre').textContent = r.compile;
+      box.appendChild(d);
+    } else if (r.marks && openDetail && openDetail.startsWith(suite + ':')) {
+      const i = Number(openDetail.split(':')[1]), t = suites[suite][i];
+      if (t) {
+        const d = document.createElement('div');
+        d.className = 'cr-detail';
+        d.innerHTML = '<div class="cd-title"></div><div class="cd-grid"><div><label>Input</label><pre></pre></div><div><label>Expected</label><pre></pre></div><div><label>Your solution printed</label><pre></pre></div></div>';
+        d.querySelector('.cd-title').textContent = `${label} · Test ${i + 1}: ${CHECK_MARKS[r.marks[i]]}`;
+        const cut = (s) => (s.length > 2000 ? s.slice(0, 2000) + '\n…' : s);
+        const pres = d.querySelectorAll('pre');
+        pres[0].textContent = cut(t.input) || '(empty)';
+        pres[1].textContent = cut(t.output) || '(none yet)';
+        pres[2].textContent = cut(r.got[i] ?? '') || '(nothing)';
+        box.appendChild(d);
+      }
+    }
+  }
+  const { empty } = checkSummary(lastCheck);
+  if (empty && !checkStale) {
+    const f = document.createElement('div');
+    f.className = 'cr-fill';
+    f.innerHTML = '<span></span>';
+    f.firstChild.textContent = `${empty} test${empty === 1 ? ' has' : 's have'} no expected output yet.`;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'primary'; b.textContent = '✨ Use what my solution printed';
+    b.addEventListener('click', fillFromCheck);
+    f.appendChild(b);
+    box.appendChild(f);
+  }
+}
+// Copy what the solution printed into every test that has no expected output.
+function fillFromCheck(onlySuite) {
+  if (!lastCheck) return 0;
+  let filled = 0;
+  for (const [suite, r] of Object.entries(lastCheck)) {
+    if (!r.marks || (typeof onlySuite === 'string' && suite !== onlySuite)) continue;
+    r.marks.forEach((m, i) => {
+      if (m !== 'Q' || !suites[suite][i]) return;
+      suites[suite][i].output = r.got[i];
+      r.marks[i] = 'P';
+      dirtySuites.add(suite);
+      filled++;
+    });
+  }
+  if (filled) {
+    testsDirty = true;
+    renderTests();
+    setDirty(true);
+    renderCheck();
+    refreshCoop();
+    toast(`Filled ${filled} expected output${filled === 1 ? '' : 's'} · press Save to keep them`);
+  }
+  return filled;
+}
+// Tests tab: fill the empty expected outputs of the set being shown.
+$('fill-outputs').addEventListener('click', async () => {
+  const empty = suites[currentSuite].filter((t) => !t.output.trim()).length;
+  if (!empty) { toast('Every test in this set already has an expected output.'); return; }
+  const need = currentSuite === 'p1' ? ['f-p1solution', 'f-p1helper'] : currentSuite === 'p2' ? ['f-p2helper', 'f-p2solution'] : ['f-p1solution', 'f-p2solution'];
+  const missing = need.find((id) => !getCode(id).trim());
+  if (missing) {
+    toast('Fill this in first: it is part of the program for this set.');
+    jumpTo(missing.replace(/^f-(p\d)(starter|solution|helper)$/, '$1:$2'));
+    return;
+  }
+  const btn = $('fill-outputs');
+  btn.disabled = true;
+  try {
+    const step = checkPlan().find((s) => s.suite === currentSuite);
+    const r = await checkSuite(step.code, suites[currentSuite]);
+    if (r.compile) { toast('Your code for this set does not compile. See "Check with my solution" for the message.'); lastCheck = { ...(lastCheck || {}), [currentSuite]: { ...r, count: suites[currentSuite].length } }; renderCheck(); return; }
+    if (r.error) { toast(r.error); return; }
+    lastCheck = { ...(lastCheck || {}), [currentSuite]: { ...r, count: suites[currentSuite].length } };
+    checkStale = false;
+    const n = fillFromCheck(currentSuite);
+    if (!n) toast('Nothing to fill: those tests crashed, timed out or printed too much. See the check results.');
+  } catch { toast('Could not reach the server. Is it running?'); }
+  finally { btn.disabled = false; }
+});
+/* ---- "Test" under each solution: compile it with its matching part, then run that player's tests ---- */
+// Player 1's program = solution + Test ending (or your Player 2 solution if there is no Test ending yet).
+// Player 2's program = Test start (or your Player 1 solution) + solution.
+function solutionProgram(n) {
+  const sol = getCode(`f-p${n}solution`);
+  const pick = (id, label, harness) => (getCode(id).trim() ? { id, label, harness } : null);
+  const other = n === 1
+    ? pick('f-p1helper', 'your Test ending', true) || pick('f-p2solution', 'your Player 2 solution', false)
+    : pick('f-p2helper', 'your Test start', true) || pick('f-p1solution', 'your Player 1 solution', false);
+  const otherCode = other ? getCode(other.id) : '';
+  const top = n === 1 ? sol : otherCode, bottom = n === 1 ? otherCode : sol;
+  return { sol, other, code: joinParts(top, bottom), offset: n === 1 ? 0 : top.split('\n').length };
+}
+// "main.c:12:5: error: ..." -> { line in the solution box (or null), kind, text }
+function mapMessages(text, offset, myLines) {
+  const out = [];
+  for (const raw of String(text || '').split(/\r?\n/)) {
+    const m = raw.match(/main\.c:(\d+):(?:\d+:)?\s*(error|warning|note|fatal error):\s*(.*)$/);
+    if (!m) continue;
+    const local = Number(m[1]) - offset;
+    out.push({ line: local >= 1 && local <= myLines ? local : null, kind: m[2] === 'fatal error' ? 'error' : m[2], text: m[3] });
+  }
+  return out;
+}
+const solMarks = { 1: [], 2: [] };
+function clearSolMarks(n) {
+  const cm = codeEds[`f-p${n}solution`].cm;
+  if (cm) for (const h of solMarks[n]) { cm.removeLineClass(h, 'background', 'sol-err-line'); cm.removeLineClass(h, 'background', 'sol-warn-line'); }
+  solMarks[n] = [];
+}
+for (const n of [1, 2]) {
+  const cm = codeEds[`f-p${n}solution`].cm;
+  if (cm) cm.on('change', () => { if (solMarks[n].length) clearSolMarks(n); });
+}
+async function testSolution(n) {
+  const box = $(`sol-result-${n}`);
+  const { sol, other, code, offset } = solutionProgram(n);
+  if (!sol.trim()) { toast(`Write your Player ${n} solution first.`); jumpTo(`p${n}:solution`); return; }
+  clearSolMarks(n);
+  box.hidden = false;
+  box.className = 'sol-result busy';
+  box.innerHTML = '<div class="sr-head">Compiling…</div>';
+  const myLines = sol.split('\n').length;
+  const otherLabel = other ? other.label : null;
+  try {
+    const res = await fetch('api/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, lang: 'c', inputs: [''] }),
+    });
+    const r = await res.json();
+    const head = (cls, text, note) => {
+      box.className = 'sol-result ' + cls;
+      box.innerHTML = '<div class="sr-head"><span class="sr-title"></span><span class="sr-note"></span></div>';
+      box.querySelector('.sr-title').textContent = text;
+      box.querySelector('.sr-note').textContent = note || '';
+    };
+    const list = (msgs) => {
+      if (!msgs.length) return;
+      const ul = document.createElement('ul');
+      const cm = codeEds[`f-p${n}solution`].cm;
+      for (const m of msgs) {
+        const li = document.createElement('li');
+        li.className = m.kind;
+        li.innerHTML = '<span class="ln"></span><span class="tx"></span>';
+        li.querySelector('.ln').textContent = m.line ? `Line ${m.line}` : `In ${otherLabel || 'the other part'}`;
+        li.querySelector('.tx').textContent = `${m.kind}: ${m.text}`;
+        ul.appendChild(li);
+        if (cm && m.line && m.kind !== 'note') {
+          const h = cm.getLineHandle(m.line - 1);
+          if (h) { cm.addLineClass(h, 'background', m.kind === 'error' ? 'sol-err-line' : 'sol-warn-line'); solMarks[n].push(h); }
+        }
+      }
+      box.appendChild(ul);
+    };
+    const togetherWith = otherLabel ? `compiled together with ${otherLabel}` : 'compiled on its own';
+    if (!r.ok && r.stage === 'compile') {
+      const msgs = mapMessages(r.compileOutput, offset, myLines);
+      head('err', '✕ Doesn\'t compile', togetherWith);
+      list(msgs);
+      if (!msgs.length) { const pre = document.createElement('ul'); const li = document.createElement('li'); li.textContent = r.compileOutput || '(no message)'; pre.appendChild(li); box.appendChild(pre); }
+      return;
+    }
+    if (!r.ok) { head('err', r.message || 'Could not run.'); return; }
+    const warnings = mapMessages(r.compileOutput, offset, myLines).filter((m) => m.kind !== 'note');
+    const suite = `p${n}`, tests = suites[suite];
+    if (!other || !other.harness) {
+      head('ok', '✓ Compiles', `${togetherWith}. Add your ${n === 1 ? 'Test ending' : 'Test start'} to run Player ${n}'s tests.`);
+      list(warnings);
+      return;
+    }
+    if (!tests.length) {
+      head('ok', '✓ Compiles', `${togetherWith}. Player ${n} has no tests yet.`);
+      list(warnings);
+      return;
+    }
+    box.className = 'sol-result busy';
+    box.innerHTML = `<div class="sr-head">Compiles ✓ · running Player ${n}'s tests…</div>`;
+    const result = await checkSuite(code, tests);
+    if (result.compile || result.error) { head('err', result.error || 'Doesn\'t compile'); return; }
+    const passed = result.marks.filter((m) => m === 'P').length, empty = result.marks.filter((m) => m === 'Q').length;
+    const graded = result.marks.length - empty;
+    head(passed === graded ? 'ok' : 'err', `${passed === graded ? '✓' : '✕'} ${passed} / ${graded} of Player ${n}'s tests pass`,
+      (empty ? `${empty} test${empty === 1 ? ' has' : 's have'} no expected output · ` : '') + 'click a mark for details below');
+    const marks = document.createElement('div');
+    marks.className = 'cr-marks';
+    result.marks.forEach((m, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'm-' + m; b.textContent = m;
+      b.title = `Test ${i + 1}: ${CHECK_MARKS[m]}`;
+      b.addEventListener('click', () => {
+        openDetail = `${suite}:${i}`;
+        renderCheck();
+        $('check-results').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      marks.appendChild(b);
+    });
+    box.appendChild(marks);
+    list(warnings);
+    // share the run with the main check results (details, filling empty outputs)
+    lastCheck = { ...(lastCheck || {}), [suite]: { ...result, count: tests.length } };
+    checkStale = false;
+    renderCheck();
+    refreshCoop();
+  } catch {
+    box.className = 'sol-result err';
+    box.innerHTML = '<div class="sr-head">Could not reach the server. Is it running?</div>';
+  }
+}
+for (const b of document.querySelectorAll('[data-test-solution]')) {
+  b.addEventListener('click', async () => {
+    b.disabled = true;
+    try { await testSolution(Number(b.dataset.testSolution)); } finally { b.disabled = false; }
+  });
+}
+
+/* ---------- clans ---------- */
+let clansTimer = null;
+async function openClans() {
+  $('clans-back').hidden = false;
+  await renderClans();
+  clearInterval(clansTimer);
+  clansTimer = setInterval(() => { if (!$('clans-back').hidden) renderClans(); }, 5000);
+}
+function closeClans() { $('clans-back').hidden = true; clearInterval(clansTimer); }
+$('clans-btn').addEventListener('click', openClans);
+$('clans-close').addEventListener('click', closeClans);
+$('clans-back').addEventListener('mousedown', (e) => { if (e.target === $('clans-back')) closeClans(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('clans-back').hidden) closeClans(); });
+
+async function renderClans() {
+  let data;
+  try { data = await api('GET', 'api/admin/clans'); } catch (e) { if (e.message !== 'auth') toast(e.message); return; }
+  const mine = Clan.id();
+  const me = data.clans.find((c) => c.id === mine);
+
+  // which clan this browser plays for
+  const bar = $('playing-as');
+  bar.textContent = '';
+  if (me) {
+    bar.style.setProperty('--clan', me.color);
+    bar.innerHTML = '<img alt=""><span>This browser plays for <b></b>. Its submits, hints and code count for that clan.</span><span class="spacer"></span>';
+    bar.querySelector('img').src = Clan.logo(me.id);
+    bar.querySelector('b').textContent = me.name;
+    const stop = document.createElement('button');
+    stop.type = 'button'; stop.textContent = 'Stop playing as a clan';
+    stop.addEventListener('click', () => { Clan.set(null); toast('This browser no longer plays for a clan'); renderClans(); });
+    bar.appendChild(stop);
+  } else {
+    bar.innerHTML = '<span>This browser doesn\'t play for a clan: it practises on its own, and nothing counts for a score.</span>';
+  }
+
+  const grid = $('clan-grid');
+  grid.textContent = '';
+  for (const c of data.clans) {
+    const card = document.createElement('div');
+    card.className = 'clan-card' + (c.id === mine ? ' active' : '');
+    card.style.setProperty('--clan', c.color);
+    card.innerHTML = `
+      <div class="cc-top">
+        <img alt="">
+        <div class="nm"><b></b><small></small></div>
+        <span class="no"></span>
+      </div>
+      <div class="cc-stats">
+        <div><b class="score"></b><span>Score</span></div>
+        <div><b class="cleared"></b><span>Cleared</span></div>
+        <div><b class="hints"></b><span>Hints left</span></div>
+        <div><b class="firsts"></b><span>Specials 1st</span></div>
+      </div>
+      <div class="cc-actions">
+        <button type="button" class="play"></button>
+        <button type="button" class="danger reset" title="Clear this clan's progress, score, hints and shared code">Reset</button>
+      </div>`;
+    card.querySelector('img').src = Clan.logo(c.id);
+    card.querySelector('img').alt = c.name;
+    card.querySelector('.nm b').textContent = c.name;
+    card.querySelector('.nm small').textContent = c.thai;
+    card.querySelector('.no').textContent = `CLAN ${String(c.no).padStart(2, '0')}`;
+    if (c.id === mine) {
+      const here = document.createElement('span');
+      here.className = 'here'; here.textContent = 'This browser';
+      card.querySelector('.cc-top').appendChild(here);
+    }
+    card.querySelector('.score').textContent = c.score;
+    card.querySelector('.cleared').textContent = `${c.cleared}/${data.missions}`;
+    card.querySelector('.hints').textContent = `${c.hintsLeft}/${data.hintsPerClan}`;
+    card.querySelector('.firsts').textContent = c.firsts.length;
+    const play = card.querySelector('.play');
+    play.textContent = c.id === mine ? '✓ Playing as this clan' : 'Play as this clan';
+    play.className = 'play' + (c.id === mine ? '' : ' primary');
+    play.addEventListener('click', () => {
+      Clan.set(c.id === mine ? null : c.id);
+      toast(c.id === mine ? 'This browser no longer plays for a clan' : `This browser now plays for ${c.name}`);
+      renderClans();
+    });
+    card.querySelector('.reset').addEventListener('click', async () => {
+      if (!confirm(`Reset ${c.name}?\n\nThis clears its cleared missions, score, used hints and shared code. It cannot be undone.`)) return;
+      try { await api('POST', `api/admin/clans/${encodeURIComponent(c.id)}/reset`); toast(`${c.name} reset`); renderClans(); }
+      catch (e) { if (e.message !== 'auth') toast(e.message); }
+    });
+    grid.appendChild(card);
+  }
+
+  // the scoring rules, for reference (players never see points per mission)
+  const pts = data.points;
+  $('scoring').innerHTML = '<span>Scoring:</span>' +
+    ['1', '2', '3', '4', '5', '6'].map((l) => `<span>${'★'.repeat(Number(l))} <b>${pts[l]}</b></span>`).join('') +
+    `<span>◆ Special <b>${pts.specialFirst}</b> first clan, <b>${pts.specialLater}</b> after</span>` +
+    `<span>Hints per clan <b>${data.hintsPerClan}</b></span>`;
+}
+
+function markCheckStale() {
+  if (!lastCheck || checkStale || checking) return;
+  checkStale = true;
+  $('check-results').classList.add('stale');
+  renderCheck();
+}
+function clearCheck() { lastCheck = null; checkStale = false; openDetail = null; renderCheck(); }
+
 /* ---------- reset my progress (testing) ---------- */
 $('reset-progress').addEventListener('click', () => {
   if (!confirm('Reset your progress in this browser?\n\nThis clears: solved ✓ marks, revealed hints (and gives you 3 hints again), and all saved code.')) return;
   try {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-    for (const k of keys) if (/^(code:|solved:|hint:)|^hints-left$/.test(k)) localStorage.removeItem(k);
+    for (const k of keys) if (/^(code:|solved:|hint:|progress:)|^hints-left$/.test(k)) localStorage.removeItem(k);
     toast('Progress reset ✓');
   } catch { toast('Could not reset: this browser blocks site storage.'); }
 });
@@ -1163,6 +1999,7 @@ function collect() {
     p1Samples: readSamples('p1-samples'), p2Samples: readSamples('p2-samples'),
     p1Starter: getCode('f-p1starter'), p2Starter: getCode('f-p2starter'),
     p1TestHelper: getCode('f-p1helper'), p2TestHelper: getCode('f-p2helper'),
+    p1Solution: getCode('f-p1solution'), p2Solution: getCode('f-p2solution'),
     samples: [...$('samples').children].map((d) => ({ input: d.querySelector('.s-in').value, output: d.querySelector('.s-out').value }))
       .filter((s) => s.input.trim() || s.output.trim()),
   };
@@ -1178,6 +2015,8 @@ function fill(p) {
   setCodeBox('f-p1helper', p.p1TestHelper);
   setCodeBox('f-p2starter', p.p2Starter);
   setCodeBox('f-p2helper', p.p2TestHelper);
+  setCodeBox('f-p1solution', p.p1Solution);
+  setCodeBox('f-p2solution', p.p2Solution);
   for (const n of [1, 2]) {
     $(`p${n}-samples`).textContent = '';
     (p[`p${n}Samples`] || []).forEach((x) => addSample(x, false, `p${n}-samples`));
@@ -1196,6 +2035,8 @@ function fill(p) {
   updateNumberHint();
   setDirty(false);
   renderPreview();
+  clearCheck();
+  refreshCoop();
   $('form-pane').scrollTop = 0;
 }
 
@@ -1205,7 +2046,8 @@ function setDirty(d) { dirty = d; $('actions').classList.toggle('dirty', d); $('
 function changed() {
   setDirty(true);
   clearTimeout(previewTimer);
-  previewTimer = setTimeout(renderPreview, 250);
+  previewTimer = setTimeout(() => { renderPreview(); refreshCoop(); }, 250);
+  markCheckStale();
   if (selImg) requestAnimationFrame(positionFrame);
 }
 $('form-pane').addEventListener('input', (e) => { if (!e.target.closest('.rich')) changed(); });
@@ -1253,7 +2095,7 @@ async function openProblem(id) {
   numberAuto = false;
   currentId = id;
   $('problem-select').value = id;
-  $('view-site').href = './#problem=' + encodeURIComponent(id);
+  $('view-site').href = 'play.html#problem=' + encodeURIComponent(id);
   fill(p);
 }
 $('problem-select').addEventListener('change', (e) => {
@@ -1279,7 +2121,7 @@ async function save() {
     await refreshList(saved.id);
     $('form-title').textContent = `Editing ${ProblemView.starsText(saved.difficulty)} · Problem ${saved.number}`;
     $('delete').hidden = false;
-    $('view-site').href = './#problem=' + encodeURIComponent(saved.id);
+    $('view-site').href = 'play.html#problem=' + encodeURIComponent(saved.id);
     setDirty(false);
     toast(`Saved ✓ · ${totalTestCount()} test case${totalTestCount() === 1 ? '' : 's'}`);
   } catch (e) { if (e.message !== 'auth') toast(e.message); }

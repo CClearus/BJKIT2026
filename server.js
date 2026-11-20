@@ -12,6 +12,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
+const clans = require('./clans');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -173,6 +174,10 @@ function cleanProblem(body) {
     p2Samples: playerSamples(body.p2Samples),
     p1TestHelper: str(body.p1TestHelper, 50000),
     p2TestHelper: str(body.p2TestHelper, 50000),
+    // The admin's own finished code for each player's part. Never sent to players; the admin page
+    // runs it against the hidden tests to check the setup and to fill in expected outputs.
+    p1Solution: str(body.p1Solution, 50000),
+    p2Solution: str(body.p2Solution, 50000),
     samples: (Array.isArray(body.samples) ? body.samples : []).slice(0, LIMITS.maxInputsPerRun)
       .map((s) => ({ input: str(s && s.input, 1e5), output: str(s && s.output, 1e5) })),
   };
@@ -455,6 +460,8 @@ async function handle(req, res) {
   const problemMatch = pathname.match(/^\/api\/problems\/([\w-]+)$/);
   const testsMatch = pathname.match(/^\/api\/problems\/([\w-]+)\/tests$/);
   const hintMatch = pathname.match(/^\/api\/problems\/([\w-]+)\/hint$/);
+  const clanCodeMatch = pathname.match(/^\/api\/clan\/code\/([\w-]+)$/);
+  const clanResetMatch = pathname.match(/^\/api\/admin\/clans\/([\w-]+)\/reset$/);
 
   if (pathname === '/api/info' && method === 'GET') {
     if (!gccVersion) await detectGcc();
@@ -471,11 +478,17 @@ async function handle(req, res) {
     // The hint stays hidden: players only learn whether there is one (the admin gets the text to edit it).
     // The test helpers stay secret too: p2TestHelper is usually a working copy of Player 1's part.
     // (all hints stay hidden: players only learn which views have one)
-    const { hint, p1Hint, p2Hint, p1TestHelper, p2TestHelper, ...pub } = p;
+    const { hint, p1Hint, p2Hint, p1TestHelper, p2TestHelper, p1Solution, p2Solution, ...pub } = p;
     const out = { ...pub, hasHint: hasHint(p), testCount: await testCount(p.id) };
     out.hints = { global: hasHint(p), p1: p.mode === 'coop' && hasHint(p, 'p1'), p2: p.mode === 'coop' && hasHint(p, 'p2') };
     if (p.mode === 'coop') out.partTestCount = { p1: await testCount(p.id, 'p1'), p2: await testCount(p.id, 'p2') };
-    if (isAdmin(req)) Object.assign(out, { hint: hint || '', p1Hint: p1Hint || '', p2Hint: p2Hint || '', p1TestHelper: p1TestHelper || '', p2TestHelper: p2TestHelper || '' });
+    if (isAdmin(req)) {
+      Object.assign(out, {
+        hint: hint || '', p1Hint: p1Hint || '', p2Hint: p2Hint || '',
+        p1TestHelper: p1TestHelper || '', p2TestHelper: p2TestHelper || '',
+        p1Solution: p1Solution || '', p2Solution: p2Solution || '',
+      });
+    }
     return sendJson(res, 200, out);
   }
   // A player used one of their hints on this problem.
@@ -484,15 +497,48 @@ async function handle(req, res) {
     // ?for=p1 / p2 asks for one player's hint; nothing else is sent
     const scope = HINT_FIELDS[url.searchParams.get('for')] ? url.searchParams.get('for') : 'global';
     if (!p || !hasHint(p, scope)) return sendJson(res, 404, { error: 'This problem has no hint here.' });
-    return sendJson(res, 200, { hint: p[HINT_FIELDS[scope]], for: scope });
+    // In a clan: hints come from the clan's shared pool, and a revealed hint stays open for the whole clan.
+    const clan = clans.clanOf(req);
+    if (clan && !clans.useHint(clan, p.id, scope)) return sendJson(res, 403, { error: 'Your clan has no hints left.', hintsLeft: 0 });
+    return sendJson(res, 200, { hint: p[HINT_FIELDS[scope]], for: scope, ...(clan ? { hintsLeft: clans.hintsLeft(clan) } : {}) });
+  }
+
+  // ---- clans: shared progress, score, hints and code ----
+  if (pathname === '/api/clans' && method === 'GET') return sendJson(res, 200, clans.CLANS);
+  if (pathname === '/api/clan/state' && method === 'GET') return sendJson(res, 200, clans.stateFor(clans.clanOf(req), problems));
+  if (clanCodeMatch) {
+    const clan = clans.clanOf(req);
+    if (!clan) return sendJson(res, 400, { error: 'Not playing for a clan.' });
+    const pid = clanCodeMatch[1];
+    if (!problems.some((x) => x.id === pid)) return sendJson(res, 404, { error: 'Problem not found.' });
+    if (method === 'GET') return sendJson(res, 200, clans.getCode(clan, pid));
+    if (method === 'PUT') {
+      let body;
+      try { body = await readJson(req, LIMITS.maxCodeBytes * 2 + 1024); }
+      catch { return sendJson(res, 413, { error: 'Code is too large.' }); }
+      const slot = String(body.slot || '');
+      const text = String(body.code ?? '');
+      if (!clans.CODE_SLOTS.includes(slot)) return sendJson(res, 400, { error: 'Bad code box.' });
+      if (Buffer.byteLength(text) > LIMITS.maxCodeBytes) return sendJson(res, 413, { error: 'Code is too large.' });
+      return sendJson(res, 200, { v: clans.putCode(clan, pid, slot, text) });
+    }
+    res.writeHead(405); return res.end();
   }
 
   // ---- admin ----
-  const adminRoute = pathname === '/api/admin/check' || pathname === '/api/upload'
+  const adminRoute = pathname.startsWith('/api/admin/') || pathname === '/api/upload'
     || (pathname === '/api/problems' && method === 'POST') || (problemMatch && method !== 'GET') || testsMatch;
   if (adminRoute && !isAdmin(req)) return sendJson(res, 401, { error: 'Wrong admin password.' });
 
   if (pathname === '/api/admin/check') return sendJson(res, 200, { ok: true });
+
+  // every clan's score, cleared missions and hints; reset one clan (testing)
+  if (pathname === '/api/admin/clans' && method === 'GET') return sendJson(res, 200, clans.overview(problems));
+  if (clanResetMatch && method === 'POST') {
+    if (!clans.CLANS.some((c) => c.id === clanResetMatch[1])) return sendJson(res, 404, { error: 'No such clan.' });
+    clans.reset(clanResetMatch[1]);
+    return sendJson(res, 200, { ok: true });
+  }
 
   if (testsMatch) {
     const id = testsMatch[1];
@@ -623,6 +669,15 @@ async function handle(req, res) {
       if (suite === 'team') Object.assign(reply, summary);
       else (reply.parts ||= {})[suite] = summary;
     }
+    // A full Submit by a clan member counts for the whole clan (a "Check my part" doesn't).
+    const clan = clans.clanOf(req);
+    if (clan && !part) {
+      const sets = [reply.total != null ? reply : null, ...Object.values(reply.parts || {})].filter(Boolean);
+      const passed = sets.reduce((n, x) => n + x.passed, 0), total = sets.reduce((n, x) => n + x.total, 0);
+      const accepted = sets.length > 0 && sets.every((x) => x.passed === x.total);
+      clans.recordSubmit(clan, problem.id, passed, total, accepted);
+      reply.cleared = accepted;
+    }
     return sendJson(res, 200, reply);
   }
 
@@ -660,6 +715,7 @@ async function handle(req, res) {
 }
 
 loadProblems();
+clans.load(DATA_DIR);
 
 const server = http.createServer((req, res) => {
   handle(req, res).catch((err) => {

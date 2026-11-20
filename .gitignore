@@ -1,0 +1,5 @@
+gcc/
+
+# live camp state (clan progress, scores, hints and shared code)
+data/clans.json
+data/clan-code.json
