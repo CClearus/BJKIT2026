@@ -217,6 +217,12 @@
     .code-pane { height: 88vh; }
   }
   @media (max-width: 560px) { .case-grid { grid-template-columns: 1fr; } }
+  .topbar .acc-out, .topbar .acc-clan { display: none; }
+  .clan-logo {
+    flex: none; width: 44px; height: 44px; padding: 7px; border-radius: 11px;
+    background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .09) 0 2px, transparent 2px 7px), var(--clan);
+  }
+  .clan-logo[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -225,10 +231,9 @@
   <h1 class="mission-name" id="mission-name"></h1>
   <span class="spacer"></span>
   <span class="status" id="status">Checking compiler…</span>
-  <a class="btn" href="guide.html">GCC guide</a>
   <span class="hint-count" id="hint-count" title="Hints left: use one to reveal a problem's hint"></span>
   <span id="account"></span>
-  <a class="btn" href="admin.html">⚙ Admin</a>
+  <img class="clan-logo" id="clan-logo" alt="" hidden>
 </header>
 
 <main class="workspace" id="workspace">
@@ -336,6 +341,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/sublime.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script src="js/output-match.js"></script>
 <script src="js/problem-view.js"></script>
 <script src="js/code-editor.js"></script>
 <script src="js/clan.js"></script>
@@ -448,6 +454,16 @@ function loadCode() {
 // Last save wins. Edits are sent 0.5 s after typing stops; clanmates' edits are picked up every 2 s.
 Clan.requireLogin();
 Clan.mountAccount($('account'));
+// same as the map: the player's name, then the clan picture (hover for the clan name)
+(async () => {
+  const u = Clan.me();
+  const info = u && await Clan.info(u.clan);
+  if (!info) return;
+  const img = $('clan-logo');
+  img.src = Clan.logo(info.id); img.alt = info.name; img.title = `${info.name} · ${info.thai}`;
+  img.style.setProperty('--clan', info.color);
+  img.hidden = false;
+})();
 const CLAN = Clan.id();
 let clanState = null;  // { score, solved, progress, hintsLeft, revealed, ... } from the server
 const slotName = (slot) => (isCoop() ? `p${slot}` : 'c');
@@ -584,8 +600,11 @@ async function loadProblemList() {
   else { problem = null; loadCode(); }
 }
 
+// the student's clan: fills {clan} in the story and counts for {clan} in "Custom script" outputs
+let myClan = null;
+const myClanReady = Clan.info().then((c) => { myClan = c; }).catch(() => {});
 function renderPaper() {
-  ProblemView.renderProblem($('paper'), problem, { hint: hintOptions(problem) });
+  ProblemView.renderProblem($('paper'), problem, { hint: hintOptions(problem), clan: myClan });
 }
 
 async function openProblem(id) {
@@ -599,6 +618,7 @@ async function openProblem(id) {
   store.set('problem', id);
   history.replaceState(null, '', '#problem=' + encodeURIComponent(id));
   $('paper').dataset.view = 'global';   // a new problem starts on the Global objective
+  await myClanReady;
   renderPaper();
   $('problem-pane').scrollTop = 0;
   updateSubmit();
@@ -683,7 +703,11 @@ function addSection(title, text, cls, parent = out) {
 }
 function showMessage(text, cls) { out.textContent = ''; addSection(null, text, cls); }
 function verdict(text, cls) { $('verdict').textContent = text; $('verdict').className = 'right ' + (cls || ''); }
-const norm = (s) => String(s).replace(/\r\n/g, '\n').split('\n').map((l) => l.trimEnd()).join('\n').trimEnd();
+// same check as Submit on the server (placeholders like {string} and {clan} on "Custom script" problems)
+const outputMatches = (got, want) => OutputMatch.matches(got, want, {
+  flexible: !!(problem && problem.customScript),
+  clanNames: myClan ? [myClan.name, myClan.thai] : [],
+});
 
 let busy = false;
 function setBusy(b, label) {
@@ -762,7 +786,7 @@ async function runCases() {
       const problemText = x.timedOut ? `${who}Time limit exceeded`
         : x.truncated && x.failedStage != null ? `${who}Printed too much`
         : x.exitCode !== 0 ? `${who}Runtime error (exit code ${x.exitCode})` : null;
-      const ok = !problemText && hasExpected && norm(x.stdout) === norm(c.output);
+      const ok = !problemText && hasExpected && outputMatches(x.stdout, c.output);
       if (hasExpected) { checked++; if (ok) passed++; }
       const card = document.createElement('div');
       card.className = 'case-res ' + (problemText || (hasExpected && !ok) ? 'fail' : ok ? 'pass' : 'info');
@@ -900,6 +924,12 @@ async function submit() {
 }
 $('submit').addEventListener('click', submit);
 
+// ` (outside text boxes) opens the Admin page, which asks for the admin password
+document.addEventListener('keydown', (e) => {
+  if (e.key === '`' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input, textarea, select, [contenteditable]')) {
+    e.preventDefault(); location.href = 'admin.html';
+  }
+});
 document.addEventListener('keydown', (e) => {
   if (((e.ctrlKey || e.metaKey) && e.key === 'Enter') || e.key === 'F5') {
     e.preventDefault();

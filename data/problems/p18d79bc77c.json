@@ -1,0 +1,53 @@
+{
+  "id": "p18d79bc77c",
+  "number": "2",
+  "name": "พิกัดลับ",
+  "difficulty": "0",
+  "madeBy": [],
+  "timeLimit": 1,
+  "memoryLimit": 64,
+  "statement": "<p>นายอำเภอส่งหน่วยสำรวจออกไปดูสถานการณ์และประเมินความเสียหาย เพื่อให้รู้ว่าเราต้องตามหาชิ้นส่วนรถไฟและสมบัติอีกมากแค่ไหน</p><p>แต่แล้ววันหนึ่ง ข่าวร้ายก็มาถึง \"นายอำเภอ! นายอำเภอ! ข่าวร้ายครับ หน่วยสำรวจของเราถูกจับตัวไปแล้ว!!!\"</p><p>ทุกอย่างดูสิ้นหวัง จนกระทั่งวิศวกรคนหนึ่งพบรหัสลับที่หน่วยสำรวจทิ้งไว้ก่อนหายตัวไป รหัสนั้นถูกเข้ารหัส (encrypt) เอาไว้ และคนเดียวที่ถอดรหัสนี้ได้คือเชฟชื่อดังประจำเมือง ซึ่งได้ให้สูตรถอดรหัสมาว่า</p><p>$$x = (a + b) \\times c$$</p><p>จงเขียนโปรแกรมถอดรหัส เพื่อหาพิกัดบนแผนที่ของชิ้นส่วนที่หายไป</p>",
+  "input": "<p>มี 1 บรรทัด เป็นจำนวนเต็ม 3 ตัว คือ $a$ $b$ และ $c$ คั่นด้วยเว้นวรรค</p>",
+  "output": "<p>จำนวนเต็ม 1 ตัว คือพิกัด $x = (a + b) \\times c$</p>",
+  "constraints": "<ul><li>$0 \\le a, b, c \\le 1000$</li><li>ทุกค่าเป็นจำนวนเต็ม คำตอบมากที่สุดคือ $2{,}000{,}000$ จึงเก็บในตัวแปร <code>int</code> ได้</li></ul>",
+  "hint": "<p>อ่านตัวเลข 3 ตัวด้วย <code>scanf(\"%d %d %d\", &amp;a, &amp;b, &amp;c);</code> แล้วอย่าลืมวงเล็บ: <code>(a + b) * c</code> ไม่เท่ากับ <code>a + b * c</code></p>",
+  "p1Hint": "<p>หลังอ่านค่าแล้ว เขียน <code>x = a + b;</code></p>",
+  "p2Hint": "<p>ใช้ <code>printf(\"%d\\n\", x * c);</code> แล้วปิดท้ายด้วย <code>return 0;</code> และ <code>}</code></p>",
+  "mode": "coop",
+  "customScript": true,
+  "shared": "",
+  "p1Task": "<p>Player 1 อ่านรหัสลับและเริ่มถอดรหัส</p><ul><li>สร้างตัวแปร <code>int</code> ชื่อ <code>a</code>, <code>b</code>, <code>c</code> และ <code>x</code> (ต้องใช้ชื่อนี้ เพราะ Player 2 จะใช้ <code>x</code> และ <code>c</code> ต่อ)</li><li>อ่าน $a$ $b$ $c$ จาก input</li><li>เก็บผลบวก $a + b$ ไว้ใน <code>x</code></li></ul>",
+  "p2Task": "<p>Player 2 ถอดรหัสให้เสร็จ: ใช้ <code>x</code> และ <code>c</code> ที่ Player 1 เตรียมไว้ แล้วพิมพ์ค่า $x \\times c$ ออกมา</p>",
+  "p1Starter": "#include <stdio.h>\n\nint main(void) {\n    // Player 1: read a, b, c and put a + b in x\n    \n",
+  "p2Starter": "    // Player 2: print x * c\n    \n    return 0;\n}\n",
+  "p1Output": "<p>ไม่ต้องพิมพ์อะไร ตอนตรวจ ระบบจะพิมพ์ค่า <code>x</code> ของคุณออกมาเทียบ ซึ่งต้องเท่ากับ $a + b$</p>",
+  "p2Output": "<p>จำนวนเต็ม 1 ตัว คือ $x \\times c$ แล้วขึ้นบรรทัดใหม่</p>",
+  "p1Samples": [
+    {
+      "input": "3 4 5",
+      "output": "7"
+    }
+  ],
+  "p2Samples": [
+    {
+      "input": "3 4 5",
+      "output": "35"
+    }
+  ],
+  "p1TestHelper": "    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+  "p2TestHelper": "#include <stdio.h>\n\nint main(void) {\n    int a, b, c, x;\n    scanf(\"%d %d %d\", &a, &b, &c);\n    x = a + b;\n",
+  "p1Solution": "#include <stdio.h>\n\nint main(void) {\n    int a, b, c, x;\n    scanf(\"%d %d %d\", &a, &b, &c);\n    x = a + b;\n",
+  "p2Solution": "    printf(\"%d\\n\", x * c);\n    return 0;\n}\n",
+  "samples": [
+    {
+      "input": "3 4 5",
+      "output": "35"
+    },
+    {
+      "input": "0 10 7",
+      "output": "70"
+    }
+  ],
+  "createdAt": "2026-11-22T17:21:19.123Z",
+  "updatedAt": "2026-11-22T17:26:08.537Z"
+}

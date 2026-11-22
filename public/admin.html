@@ -37,6 +37,7 @@
 
   /* difficulty picker */
   .level-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .field-row { display: flex; flex-wrap: wrap; column-gap: 24px; }
   .mode-picker { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: 999px; padding: 3px; background: var(--surface); width: fit-content; }
   .mode-picker button { border: 0; border-radius: 999px; padding: 6px 14px; font-size: .84rem; font-weight: 600; color: var(--muted); background: transparent; }
   .mode-picker button[aria-checked="true"] { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
@@ -479,11 +480,20 @@
 
     <div id="tab-problem" role="tabpanel">
 
-    <div class="f level-field">
-      <span>Mode</span>
-      <div class="mode-picker" id="f-mode" role="radiogroup" aria-label="Mode">
-        <button type="button" data-mode="solo" role="radio">Solo</button>
-        <button type="button" data-mode="coop" role="radio">Co-op · 2 players</button>
+    <div class="field-row">
+      <div class="f level-field">
+        <span>Mode</span>
+        <div class="mode-picker" id="f-mode" role="radiogroup" aria-label="Mode">
+          <button type="button" data-mode="solo" role="radio">Solo</button>
+          <button type="button" data-mode="coop" role="radio">Co-op · 2 players</button>
+        </div>
+      </div>
+      <div class="f level-field">
+        <span>Custom script</span>
+        <div class="mode-picker" id="f-script" role="radiogroup" aria-label="Custom script">
+          <button type="button" data-script="off" role="radio">Off</button>
+          <button type="button" data-script="on" role="radio">On</button>
+        </div>
       </div>
     </div>
     <div class="f level-field">
@@ -667,6 +677,9 @@
       <div class="tests-intro">
         <b>Hidden test cases.</b> Students never see these. When they press <b>Submit</b>, their program runs on every test
         (with this problem's time limit) and the output is compared with yours, ignoring trailing spaces and blank lines at the end.
+        <br><b>Custom script On:</b> expected outputs may use <code>{string}</code> (any text), <code>{clan}</code> (the student's own clan, English or Thai),
+        <code>{word}</code>, <code>{int}</code>, <code>{number}</code> and <code>{any}</code>. Example: <code>Hello, My name is {string}</code>.
+        <code>{clan}</code> also works in the story: it shows the reader's clan name.
         <span class="coop-only-inline"><br><b>Co-op:</b> there are three sets. Players only clear the problem when all three pass;
         each player's own results show as <code>PPF…</code> next to their code.</span>
       </div>
@@ -834,6 +847,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/sublime.min.js"></script>
 <script src="js/code-editor.js"></script>
+<script src="js/output-match.js"></script>
 <script src="js/problem-view.js"></script>
 <script src="js/clan.js"></script>
 <script>
@@ -1957,6 +1971,14 @@ function setMode(m) {
   if (typeof updateTestCounts === 'function') updateTestCounts();
   if (typeof refreshCoop === 'function') refreshCoop();
 }
+let customScript = false;
+function setScript(on) {
+  customScript = !!on;
+  for (const b of $('f-script').children) b.setAttribute('aria-checked', String((b.dataset.script === 'on') === customScript));
+}
+for (const b of $('f-script').children) {
+  b.addEventListener('click', () => { setScript(b.dataset.script === 'on'); changed(); });
+}
 for (const b of $('f-mode').children) {
   b.addEventListener('click', () => {
     setMode(b.dataset.mode);
@@ -2107,7 +2129,10 @@ const CHECK_MARKS = {
 };
 const MAX_BATCH = 600 * 1024;        // raw input bytes per run request (the server caps request size)
 const joinParts = (top, bottom) => `${top}\n${bottom}`;
-const normOut = (s) => String(s).replace(/\r\n?/g, '\n').split('\n').map((l) => l.trimEnd()).join('\n').trimEnd();
+// Same check as Submit. The admin has no clan, so any clan's name counts for {clan}.
+let allClanNames = [];
+Clan.list().then((l) => { allClanNames = l.flatMap((c) => [c.name, c.thai]); });
+const outMatches = (got, want) => OutputMatch.matches(got, want, { flexible: customScript, clanNames: allClanNames });
 let lastCheck = null, checkStale = false, checking = false;
 
 function checkPlan() {
@@ -2134,7 +2159,7 @@ async function checkSuite(code, list) {
       const i = batch[k], want = list[i].output;
       got[i] = x.stdout || '';
       marks[i] = x.timedOut ? 'T' : x.truncated ? 'O' : x.exitCode !== 0 ? 'X'
-        : !want.trim() ? 'Q' : normOut(x.stdout) === normOut(want) ? 'P' : 'F';
+        : !want.trim() ? 'Q' : outMatches(x.stdout, want) ? 'P' : 'F';
     });
     batch = []; bytes = 0;
     return null;
@@ -2637,6 +2662,7 @@ function collect() {
     statement: html('statement'), input: html('input'), output: html('output'), constraints: html('constraints'),
     hint: html('hint'),
     mode,
+    customScript,
     shared: $('f-shared').value,
     p1Task: html('p1Task'), p2Task: html('p2Task'),
     p1Output: html('p1Output'), p2Output: html('p2Output'),
@@ -2655,6 +2681,7 @@ function fill(p) {
   $('f-name').value = p.name || '';
   setLevel(p.difficulty || level);
   setMode(p.mode === 'coop' ? 'coop' : 'solo');
+  setScript(p.customScript === true);
   $('f-shared').value = p.shared || '';
   setCodeBox('f-p1starter', p.p1Starter);
   setCodeBox('f-p1helper', p.p1TestHelper);

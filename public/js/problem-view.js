@@ -216,6 +216,36 @@
     paper.appendChild(body);
   }
 
+  // {clan} in the text: the reader's clan name, bold in the clan's color ("[ชื่อเมือง]" when there is no clan,
+  // e.g. the admin preview). Placeholders in the examples of a "Custom script" problem become chips.
+  function fillPlaceholders(root, p, clan) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const texts = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.includes('{')) texts.push(n);
+    const labels = (window.OutputMatch && OutputMatch.LABELS) || {};
+    for (const node of texts) {
+      const inSample = !!node.parentElement.closest('table.samples');
+      const re = inSample && p.customScript ? /\{(string|clan|word|int|number|any)\}/g : /\{(clan)\}/g;
+      if (!re.test(node.nodeValue)) continue;
+      re.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      for (const m of node.nodeValue.matchAll(re)) {
+        frag.append(node.nodeValue.slice(last, m.index));
+        if (inSample) {
+          frag.appendChild(el('span', 'p-ph', labels[m[1]] || m[1]));
+        } else {
+          const b = el('b', 'p-clan', clan ? clan.thai : '[ชื่อเมือง]');
+          if (clan) { b.style.setProperty('--clan', clan.color); b.title = clan.name; }
+          frag.appendChild(b);
+        }
+        last = m.index + m[0].length;
+      }
+      frag.append(node.nodeValue.slice(last));
+      node.replaceWith(frag);
+    }
+  }
+
   function renderMath(root) {
     if (!window.renderMathInElement) return;
     try {
@@ -305,6 +335,15 @@
   function renderProblem(paper, p, options = {}) {
     paper.textContent = '';
     const coop = p.mode === 'coop';
+    if (p.customScript) {
+      // Font Awesome "code" icon (CC BY 4.0, fontawesome.com)
+      const icon = el('span', 'p-script');
+      icon.title = 'Custom script';
+      icon.setAttribute('role', 'img');
+      icon.setAttribute('aria-label', 'Custom script');
+      icon.innerHTML = '<svg viewBox="0 0 640 512" aria-hidden="true"><path fill="currentColor" d="M392.8 1.2c-17-4.9-34.7 5-39.6 22l-128 448c-4.9 17 5 34.7 22 39.6s34.7-5 39.6-22l128-448c4.9-17-5-34.7-22-39.6zm80.6 120.1c-12.5 12.5-12.5 32.8 0 45.3L562.7 256l-89.4 89.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l112-112c12.5-12.5 12.5-32.8 0-45.3l-112-112c-12.5-12.5-32.8-12.5-45.3 0zm-306.7 0c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3l112 112c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l89.4-89.4c12.5-12.5 12.5-32.8 0-45.3z"/></svg>';
+      paper.appendChild(icon);
+    }
 
     const head = el('header', 'p-head');
     const label = el('div', 'p-label');
@@ -326,6 +365,7 @@
       body.className = `p-body view-${view}`;
       if (view === 'global') renderGlobal(body, p, options);
       else renderPlayer(body, p, view === 'p1' ? 1 : 2);
+      fillPlaceholders(body, p, options.clan);
       showScopeHint(paper, p, options.hint, view);   // each view has its own hint
       renderMath(body);
       const hintSec = paper.querySelector('.p-hint');

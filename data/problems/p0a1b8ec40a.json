@@ -1,0 +1,58 @@
+{
+  "id": "p0a1b8ec40a",
+  "number": "1",
+  "name": "แนะนำตัว",
+  "difficulty": "0",
+  "madeBy": [
+    {
+      "name": "รัฐบาล ICTP รุ่น 67",
+      "avatar": "uploads/9265c489d6eba18041ae847fe1283858.jpg"
+    },
+    {
+      "name": "ทีมงานเมือง cspro",
+      "avatar": "uploads/ba3711730dcfeff28d58eaf8fba06de0.png"
+    }
+  ],
+  "timeLimit": 1,
+  "memoryLimit": 1,
+  "statement": "<p>เรื่องราวมีอยู่ว่า วันหนึ่งรถไฟขบวนสำคัญจากเมือง cspro เกิดอุบัติเหตุตกรางและพังเสียหายอย่างหนัก รถไฟขบวนนี้เป็นเส้นทางหลักในการขนส่งสินค้าจากต่างแดน นายอำเภอปูนปั้น วิศวกานต์ และเชฟอชิ จึงรีบหาทางซ่อมรถไฟให้เร็วที่สุด</p><p>พวกเขาส่งข่าวไปยังเมืองรอบ ๆ ได้แก่ เอราวัณ มยุรเวนไตย นาคราช บัณฑุราชสีห์ กิเลน และครุฑา ขอให้แต่ละเมืองส่งเหล่าคาวบอยและคาวเกิร์ลหน้าใหม่ออกตามหาชิ้นส่วนรถไฟมาซ่อมแซม พร้อมตามหาสมบัติที่หายไป เมืองที่ทำผลงานได้มากที่สุดจะได้รับรางวัลพิเศษ</p><p>วันที่ 10 ธันวาคม 1880 ทีมสำรวจจากทุกเมืองมารวมตัวกันเพื่อรายงานตัวต่อนายอำเภอ โดยสมาชิกแต่ละคนต้องบอกชื่อของตัวเอง แล้วบอกว่าทีมมาจากเมืองไหน</p><p>ในฐานะทีมสำรวจจากเมือง {clan} จงรายงานตัวต่อนายอำเภอเสียเถิด!</p>",
+  "input": "<p>ไม่มีข้อมูลนำเข้า</p>",
+  "output": "<p>พิมพ์ทั้งหมด 4 บรรทัด</p><ul><li>บรรทัดที่ 1 ถึง 3: <code>Hello, My name is </code> ตามด้วยชื่อของสมาชิกแต่ละคน (ใส่ชื่ออะไรก็ได้)</li><li>บรรทัดที่ 4: <code>We are from </code> ตามด้วยชื่อเมืองของทีม คือเมือง {clan}</li></ul>",
+  "constraints": "<ul><li>ชื่อแต่ละชื่อต้องมีอย่างน้อย 1 ตัวอักษร</li><li>ชื่อเมืองต้องเป็นเมืองของทีมตัวเอง เขียนเป็นภาษาอังกฤษ (เช่น <code>Erawan</code>) หรือภาษาไทย (เช่น <code>เอราวัณ</code>) ก็ได้ แต่ต้องสะกดให้ถูก</li><li>ข้อความอื่นต้องตรงทุกตัวอักษร รวมถึงตัวพิมพ์เล็ก-ใหญ่ เครื่องหมาย <code>,</code> และเว้นวรรค</li></ul>",
+  "hint": "<p>ใช้ <code>printf</code> พิมพ์ข้อความ และใส่ <code>\\n</code> ท้ายข้อความเพื่อขึ้นบรรทัดใหม่ เช่น <code>printf(\"Hello, My name is Somchai\\n\");</code></p>",
+  "p1Hint": "<p>เขียน <code>printf</code> 2 ครั้ง ครั้งละ 1 ชื่อ อย่าลืม <code>\\n</code> ท้ายแต่ละบรรทัด</p>",
+  "p2Hint": "<p>บรรทัดสุดท้ายคือ <code>We are from </code> ตามด้วยชื่อเมืองของทีม เช่น <code>printf(\"We are from Erawan\\n\");</code> (ใช้ชื่อเมืองของทีมตัวเอง)</p>",
+  "mode": "coop",
+  "shared": "",
+  "p1Task": "<p>Player 1 แนะนำตัวก่อน 2 คน: พิมพ์ <code>Hello, My name is </code> ตามด้วยชื่อ ทั้งหมด 2 บรรทัด</p>",
+  "p2Task": "<p>Player 2 แนะนำตัวต่ออีก 1 คน แล้วบอกนายอำเภอว่าทีมมาจากเมืองไหน</p>",
+  "p1Starter": "#include <stdio.h>\n\nint main(void) {\n    // Player 1\n    \n",
+  "p2Starter": "    // Player 2\n    \n    return 0;\n}\n",
+  "p1Output": "<p>2 บรรทัด แต่ละบรรทัดเป็น <code>Hello, My name is </code> ตามด้วยชื่อ (ใส่ชื่ออะไรก็ได้)</p>",
+  "p2Output": "<p>2 บรรทัด: <code>Hello, My name is </code> ตามด้วยชื่อ แล้วตามด้วย <code>We are from </code> และชื่อเมือง {clan} (ภาษาอังกฤษหรือภาษาไทยก็ได้)</p>",
+  "p1Samples": [
+    {
+      "input": "",
+      "output": "Hello, My name is {string}\nHello, My name is {string}"
+    }
+  ],
+  "p2Samples": [
+    {
+      "input": "",
+      "output": "Hello, My name is {string}\nWe are from {clan}"
+    }
+  ],
+  "p1TestHelper": "    return 0;\n}\n",
+  "p2TestHelper": "#include <stdio.h>\n\nint main(void) {\n",
+  "p1Solution": "#include <stdio.h>\n\nint main(void) {\n    printf(\"Hello, My name is Somchai\\n\");\n    printf(\"Hello, My name is Malee\\n\");\n",
+  "p2Solution": "    printf(\"Hello, My name is Mana\\n\");\n    printf(\"We are from Erawan\\n\");\n    return 0;\n}\n",
+  "samples": [
+    {
+      "input": "",
+      "output": "Hello, My name is {string}\nHello, My name is {string}\nHello, My name is {string}\nWe are from {clan}"
+    }
+  ],
+  "createdAt": "2026-11-22T16:55:43.315Z",
+  "updatedAt": "2026-11-22T17:15:54.840Z",
+  "customScript": true
+}

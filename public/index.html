@@ -45,7 +45,15 @@
   .tn-right { justify-self: end; display: flex; align-items: center; gap: 16px; min-width: 0; }
   /* the clan chip already shows the clan, so the account only needs the student's name */
   .tn-right:has(.clan-chip:not([hidden])) .acc-clan { display: none; }
-  .tn-right .acc-out { white-space: nowrap; }
+  /* the picture is the only thing shown: hover it for the name, click it for Log out */
+  .tn-right { position: relative; }
+  .tn-right .clan-chip { cursor: pointer; padding: 0; border: 0; background: none; border-radius: 0; }
+  .tn-right .acc-who { white-space: nowrap; }
+  .tn-right .acc-out {
+    position: absolute; top: 100%; right: 0; margin-top: 8px; z-index: 20; white-space: nowrap; display: none;
+  }
+  .tn-right.open .acc-out { display: block; }
+  .clan-chip { padding: 5px; }
 
   /* the big countdown */
   .timer { display: flex; flex-direction: column; align-items: center; gap: 3px; line-height: 1; }
@@ -87,7 +95,7 @@
   .clan-logo {
     flex: none; width: 44px; height: 44px; padding: 7px; border-radius: 11px; display: block;
     background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .09) 0 2px, transparent 2px 7px), var(--clan);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2), 0 6px 16px color-mix(in srgb, var(--clan) 35%, transparent);
+    box-shadow: none;
   }
   .clan-name { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
   .clan-name small { font: 600 .6rem var(--font-mono); letter-spacing: .3em; text-transform: uppercase; color: var(--muted); }
@@ -102,11 +110,10 @@
   .panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); }
   .home[data-panel="full"] .panel { border-left: 1px solid var(--border); box-shadow: -12px 0 40px rgba(0, 0, 0, .06); }
   .home[data-panel="float"] .panel {
-    position: absolute; z-index: 3; right: 20px; bottom: 20px; width: var(--panel-w);
-    height: calc(50% - 20px); min-height: 300px;
-    background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(14px);
-    border: 1px solid var(--border); border-radius: 18px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, .06), 0 24px 60px rgba(0, 0, 0, .22);
+    position: absolute; z-index: 3; right: 0; top: 0; bottom: 0; width: var(--panel-w);
+    background: var(--surface);
+    border: 0; border-left: 1px solid var(--border); border-radius: 0;
+    box-shadow: none;
     animation: panelIn .45s cubic-bezier(.2, .8, .2, 1);
   }
   @keyframes panelIn { from { opacity: 0; transform: translateY(16px) scale(.98); } }
@@ -295,10 +302,7 @@
 </head>
 <body>
 <header class="topnav">
-  <nav class="tn-left" aria-label="Links">
-    <a class="link" href="guide.html">GCC guide</a>
-    <a class="link" href="admin.html">⚙ Admin</a>
-  </nav>
+  <nav class="tn-left" aria-label="Links"></nav>
   <div class="timer off" id="timer" role="timer" aria-live="off">
     <small id="timer-label">Time left</small>
     <b id="timer-left">--:--</b>
@@ -307,8 +311,6 @@
     <div id="account" aria-label="Logged in as"></div>
     <div class="clan-chip" id="clan-chip" hidden>
       <img class="clan-logo" id="clan-logo" alt="">
-      <div class="clan-name"><small id="clan-no"></small><b id="clan-name"></b></div>
-      <div class="clan-score"><b id="clan-score">0</b><small>Score</small></div>
     </div>
   </div>
 </header>
@@ -354,6 +356,17 @@ const lvColor = (lv) => (lv === 'special' ? 'var(--sp1)' : `var(--lv${lv})`);
 // Otherwise: what this browser saved.
 Clan.requireLogin();
 Clan.mountAccount($('account'));
+// ` (outside text boxes) opens the Admin page, which asks for the admin password
+document.addEventListener('keydown', (e) => {
+  if (e.key === '`' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input, textarea, select, [contenteditable]')) {
+    e.preventDefault(); location.href = 'admin.html';
+  }
+});
+{
+  const box = document.querySelector('.tn-right');
+  $('clan-chip').addEventListener('click', (e) => { e.stopPropagation(); box.classList.toggle('open'); });
+  document.addEventListener('click', (e) => { if (!box.contains(e.target) || e.target.closest('.acc-out')) box.classList.remove('open'); });
+}
 const CLAN = Clan.id();
 let clan = null;    // { score, solved: Set, progress, started: Set }
 let firsts = {};     // special missions: id -> clan that cleared it first
@@ -408,13 +421,7 @@ async function renderClanChip() {
   $('clan-chip').style.setProperty('--clan', info.color);
   $('clan-logo').src = Clan.logo(info.id);
   $('clan-logo').alt = info.name;
-  $('clan-no').textContent = `Clan ${String(info.no).padStart(2, '0')}`;
-  $('clan-name').textContent = info.name;
-  $('clan-name').title = info.thai;
-  const el = $('clan-score');
-  el.textContent = clan.score;
-  if (shownScore != null && clan.score !== shownScore) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
-  shownScore = clan.score;
+  $('clan-chip').title = `${info.name} · ${info.thai}`;
 }
 
 /* ---------- the camp timer (top bar) ---------- */

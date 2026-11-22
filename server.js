@@ -13,6 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const clans = require('./clans');
+const OutputMatch = require('./public/js/output-match.js');   // same checker the pages use
 const students = require('./students');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -221,6 +222,7 @@ function cleanProblem(body) {
     // Co-op: Player 1's code and Player 2's code form one continuous program.
     // (shared is no longer used; kept so older problems still load.)
     mode: body.mode === 'coop' ? 'coop' : 'solo',
+    customScript: body.customScript === true,   // shows a script icon at the top right of the problem paper
     shared: str(body.shared, 50000),
     p1Task: str(body.p1Task, 2e5),
     p2Task: str(body.p2Task, 2e5),
@@ -286,7 +288,12 @@ async function testCount(id, suite = 'team') {
   return testCounts.get(key);
 }
 // Same comparison as most judges: ignore trailing spaces and trailing blank lines.
-const normalizeOutput = (s) => String(s).replace(/\r\n?/g, '\n').split('\n').map((l) => l.trimEnd()).join('\n').trimEnd();
+// "Custom script" problems also accept placeholders like {string} and {clan} (public/js/output-match.js).
+// {clan} is the submitting student's clan; with no clan (e.g. not a student) any clan counts.
+function clanNamesFor(clanId) {
+  const list = clanId ? clans.CLANS.filter((c) => c.id === clanId) : clans.CLANS;
+  return list.flatMap((c) => [c.name, c.thai]);
+}
 
 // Turn linker errors (the ones you get when two files don't fit together) into plain messages.
 function tidyCompileOutput(text) {
@@ -592,7 +599,7 @@ async function handle(req, res) {
     let body;
     try { body = await readJson(req, 4096); } catch { return sendJson(res, 400, { error: 'Bad request.' }); }
     const r = students.login(body.username, body.password);
-    if (!r) { students.noteFail(ip); return sendJson(res, 401, { error: 'Wrong username or password.' }); }
+    if (!r) { students.noteFail(ip); return sendJson(res, 401, { error: 'Wrong name or password.' }); }
     students.noteOk(ip);
     res.setHeader('Set-Cookie', r.cookie);
     return sendJson(res, 200, { ok: true, user: students.publicUser(r.user) });
@@ -841,6 +848,7 @@ async function handle(req, res) {
     const timeLimitMs = Math.min(LIMITS.maxRunTimeoutMs, Math.round(problem.timeLimit * 1000));
     const deadline = Date.now() + LIMITS.maxJudgeMs;
     const crashed = (r) => r.signal != null || r.exitCode == null || r.exitCode < 0 || r.exitCode >= 0xC0000000;
+    const matchOptions = { flexible: problem.customScript === true, clanNames: clanNamesFor(clans.clanOf(req)) };
     const reply = { ok: true };
     for (const { suite, stage, tests } of suites) {
       const result = await withSlot(() => compileAndRun({
@@ -857,7 +865,7 @@ async function handle(req, res) {
           if (r.timedOut) return 'T';
           if (r.truncated) return 'O';
           if (r.exitCode !== 0) return crashed(r) ? 'X' : 'E';
-          if (normalizeOutput(r.stdout) === normalizeOutput(tests[i].output)) return 'P';
+          if (OutputMatch.matches(r.stdout, tests[i].output, matchOptions)) return 'P';
           return r.stdout.trim() === '' ? '-' : 'F';
         }).join('');
       }
