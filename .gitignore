@@ -2,13 +2,9 @@
 # GCC download (setup-gcc.bat installs it again)
 gcc/
 
-# Everything else in data/ IS pushed while the repo is used for testing (problems, tests, uploads,
-# GIFs, clan progress and code, the timer, the admin password).
+# All of data/ IS pushed (problems, tests, uploads, GIFs, students, logins, clan progress and code,
+# the timer, the admin password) so the whole camp can be moved to another PC.
 # Make the repo private before the real camp.
-
-# student roster (real students' names) and live login tokens: never on GitHub
-data/students.json
-data/sessions.json
 
 # half-written saves
 *.tmp

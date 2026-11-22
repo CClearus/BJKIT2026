@@ -1,0 +1,254 @@
+[
+  {
+    "username": "1",
+    "name": "ธีรภัทร นนท์นภาพันธ์",
+    "grade": "M.4",
+    "clan": "bandhu-ratchasi",
+    "passwordHash": "scrypt$63f4c66410a764db8e879de4582776c8$6d6af77905926dce784e648d8c5560cd5ef66fad9e4ebab6d99b854c22ee9673"
+  },
+  {
+    "username": "2",
+    "name": "ศรันย์วิทย์ เจริญผล",
+    "grade": "M.4",
+    "clan": "nakkharat",
+    "passwordHash": "scrypt$1e0b4c33867731c0fffa83d6ccc26317$bc8484171d7ade67c3cee861100f8b25f9524b33184cf16d23ed78ca663bc8b3"
+  },
+  {
+    "username": "3",
+    "name": "กตัญญู เจริญสุข",
+    "grade": "M.4",
+    "clan": "nakkharat",
+    "passwordHash": "scrypt$50370c53f2c1365d244f7e81638c4ac0$85e738d27107d50389c4089ac445baeb16c368a61fd346fac9c80090f9c1ea71"
+  },
+  {
+    "username": "4",
+    "name": "ชนันธร ใบชู",
+    "grade": "M.4",
+    "clan": "erawan",
+    "passwordHash": "scrypt$ca217d29c765731197614cec9336836a$85ed28d078f207f747fd79bac5d479dcb750f076f034d517c2b1479fc3bb0807"
+  },
+  {
+    "username": "5",
+    "name": "ชลัลวิทย์ ลิ้มธีรพงศ์สถิต",
+    "grade": "M.4",
+    "clan": "bandhu-ratchasi",
+    "passwordHash": "scrypt$efa6a9934159bd9342e90a95e0937c1b$834e193a953dd71a1780decda18c093fa8d8ca21aa3b744230b68b53c1262912"
+  },
+  {
+    "username": "6",
+    "name": "ชาคริยา ชัยเจริญพงศ์",
+    "grade": "M.4",
+    "clan": "bandhu-ratchasi",
+    "passwordHash": "scrypt$acf792098a2c4d4a4ab4027495d4a1ef$5d1c942bf0e5bb7c2f1d08427d31438c9ff415374816393cfe346cac2724ed75"
+  },
+  {
+    "username": "7",
+    "name": "ณัฏฐกฤต รักร่วม",
+    "grade": "M.4",
+    "clan": "erawan",
+    "passwordHash": "scrypt$b809485235ae90347127aa3c2f153998$2d4a0864657dc9ff52b3fa2f689c53e252433064b05e5ab074bc8b8de23d65bc"
+  },
+  {
+    "username": "8",
+    "name": "ทวีวิทย์ ดอกไม้",
+    "grade": "M.4",
+    "clan": "khrutha",
+    "passwordHash": "scrypt$11bd45391b2c4bff99c4228ebe762a1d$659b4976278e3458d766e16325f76f3d2246e5f453860e72047e3467af736a57"
+  },
+  {
+    "username": "9",
+    "name": "ธนกฤต อิ่มผ่อง",
+    "grade": "M.4",
+    "clan": "nakkharat",
+    "passwordHash": "scrypt$04f4d2a7a3c6496e2896ca81efad2148$ebacdd9aae6ddb638b6ae0e4eb4c62352244d97aee1a577a0a982383ba6a2ac8"
+  },
+  {
+    "username": "10",
+    "name": "ธนวิน กันทรวิชัยวัฒน์",
+    "grade": "M.4",
+    "clan": "mayurawentai",
+    "passwordHash": "scrypt$c150ead14fac9a6e4d9dda75dcbf987b$073f39cc9b00b61d42c2f4923fd7ba67576f2525ad35745ec9c918810c6d46f3"
+  },
+  {
+    "username": "11",
+    "name": "ธัชนนท์ เลขกาญจน์",
+    "grade": "M.4",
+    "clan": "erawan",
+    "passwordHash": "scrypt$b6775cf770dd22fef189fb5f0c252774$ef35001209fb995dd96e0c6b1d3ae3ba39c8a01947d7899eed84c625403cd634"
+  },
+  {
+    "username": "12",
+    "name": "เนติธร วิเสโส",
+    "grade": "M.4",
+    "clan": "mayurawentai",
+    "passwordHash": "scrypt$fe3d66483af6caa711564186c80ddf1b$66848067c3e8c3a43dd826916f921273c2df01ab05744f3a2e26a9076f6e2785"
+  },
+  {
+    "username": "13",
+    "name": "พิชญพงษ์ สงวนทรัพย์",
+    "grade": "M.4",
+    "clan": "erawan",
+    "passwordHash": "scrypt$cf128b96b6671bf41c039b945ef455e6$41dcf6ed33568bd1fc0173773e8527e80d61e9d73e4545749b00a1c567a23e25"
+  },
+  {
+    "username": "14",
+    "name": "ภานุกร แสนบุญ",
+    "grade": "M.4",
+    "clan": "mayurawentai",
+    "passwordHash": "scrypt$73631f4a019139122a09ea0772b165c9$7a71c35b0a1b8325de598b01f4f26ba81bcaf246a4884983882976f458dadf32"
+  },
+  {
+    "username": "15",
+    "name": "วรวุฒิ อินสำอางค์",
+    "grade": "M.4",
+    "clan": "khrutha",
+    "passwordHash": "scrypt$bccc97567075bed0f373266fcdc8358a$d79f12375446f5e4fd03a79fa73db14174a4a7323e21a98d5cdfe31bfbcd459d"
+  },
+  {
+    "username": "16",
+    "name": "วิวิธภวินท์ พาเที่ยง",
+    "grade": "M.4",
+    "clan": "mayurawentai",
+    "passwordHash": "scrypt$0c722ad196beb21ea61a37a7e4c5f722$5a2f220f690bb68e700afbeb9ef96245ef916c16822f3bd7af9f62d45d88626a"
+  },
+  {
+    "username": "17",
+    "name": "สุภเวช สินธุรัตน์",
+    "grade": "M.4",
+    "clan": "khrutha",
+    "passwordHash": "scrypt$f6b11a3977fec7d8b5a96b734389c4d1$ed3d8eb9e2a2a9bf2691f666968431723a7cef4f730d806ee0efb5b1c61b0cfe"
+  },
+  {
+    "username": "18",
+    "name": "อภิวิชญ์ ชูพงษ์",
+    "grade": "M.4",
+    "clan": "bandhu-ratchasi",
+    "passwordHash": "scrypt$93357e4d777bf4949cff378e4165b4f7$d284200f586996e42c1ddbfba94b27294bdcc37551cf915c055a747b049a038e"
+  },
+  {
+    "username": "19",
+    "name": "อาร์ชิบ นิละชา",
+    "grade": "M.4",
+    "clan": "kilen",
+    "passwordHash": "scrypt$d118f66873b26463877797fd66e7e858$3a9c1d6c05920eb3c0f5d387d30b33958bf82e0d33c7c521334ec6721c3534a1"
+  },
+  {
+    "username": "20",
+    "name": "จิรวัฒน์ โกศล",
+    "grade": "M.4",
+    "clan": "bandhu-ratchasi",
+    "passwordHash": "scrypt$cf0eaaa9cd93f1039569795d338e04d6$a49e5d7a4deba91dde598d0990b3f26279ce2f805610d3ddb19d860b8d47ecf4"
+  },
+  {
+    "username": "21",
+    "name": "ณรากร ภู่สุวรรณ",
+    "grade": "M.4",
+    "clan": "nakkharat",
+    "passwordHash": "scrypt$f0c7f5c0b81ad771898fa4225b4d5894$ddca9ddce40f61139eef85493f2e2d47674a084dcd9b94e7cc6457d04d328fff"
+  },
+  {
+    "username": "22",
+    "name": "นริศร์ รัตนวณิชกุล",
+    "grade": "M.4",
+    "clan": "khrutha",
+    "passwordHash": "scrypt$a160107a313da5b2afc39288c628f3e5$337cfabfc16ea554e20ac62a68ed124cee2f826b3a4f8de97c935e73a2145f68"
+  },
+  {
+    "username": "23",
+    "name": "ปัณณทัต โพธิสุข",
+    "grade": "M.4",
+    "clan": "kilen",
+    "passwordHash": "scrypt$c1686a8eadf4f8eb2406ccc2beadb81b$f88218c6727750676ad98d0828c656670a22bdc9654c16f8efdd66c6720e7c3d"
+  },
+  {
+    "username": "24",
+    "name": "สุศิริน ลัดดาไสว",
+    "grade": "M.4",
+    "clan": "kilen",
+    "passwordHash": "scrypt$b24c808846a3c43319225e6f07c80eb8$082cb655fb1307325ca75298f53a1b00cc5bf7ac6e2d3014b507705e021014ba"
+  },
+  {
+    "username": "25",
+    "name": "ณัฐชนน กองจินดา",
+    "grade": "M.4",
+    "clan": "mayurawentai",
+    "passwordHash": "scrypt$3364c0493ef24760cf69aa6e6e71be25$9988bdcc8fdf9afe35df9300ad7dcb893b27a102764ffc6c56e03f6b3bd8be4b"
+  },
+  {
+    "username": "26",
+    "name": "รัชพล เวียงสมุทร",
+    "grade": "M.4",
+    "clan": "kilen",
+    "passwordHash": "scrypt$7603f3f9b42f46e0672cbd62b3afbeb3$fd097ffda4235493af326645d0b03c6ac68d2fe3dab9838a88f4bc41ec163ee2"
+  },
+  {
+    "username": "27",
+    "name": "พีรณัฐ หิรัญรมย์",
+    "grade": "M.4",
+    "clan": "bandhu-ratchasi",
+    "passwordHash": "scrypt$e031cbc106e2cb56a3b3622b6497bb2b$1aa9ce7448e4847eab8ac940864d4a5aff9b4779cfc7f3f290eeeda667600c5a"
+  },
+  {
+    "username": "28",
+    "name": "ชนกันต์ นาบำรุง",
+    "grade": "M.4",
+    "clan": "kilen",
+    "passwordHash": "scrypt$e90abf89f85dd96eff954eff96d8f77f$f79be7d44b69e99d471211b845a8c3851d6065dee39874fef7a957a0c1489655"
+  },
+  {
+    "username": "29",
+    "name": "ฐิติพงศ์ บุญอยู่",
+    "grade": "M.4",
+    "clan": "khrutha",
+    "passwordHash": "scrypt$9a514e631fdccd6c914d0202c7bae610$36941d701345d94de8d5b1556a94dd5c08b1b88616af74838a69b069333eb9fd"
+  },
+  {
+    "username": "30",
+    "name": "ณัฐภาส ร้านจันทร์",
+    "grade": "M.4",
+    "clan": "khrutha",
+    "passwordHash": "scrypt$c2d37e48eca4e4dc8d6c0099b27b55c8$7ba7e28ab43d990a2c84cce9b150eaf7f67a43ff95370752c27efd35602208e8"
+  },
+  {
+    "username": "31",
+    "name": "ธิปไตย ปานฟัก",
+    "grade": "M.4",
+    "clan": "nakkharat",
+    "passwordHash": "scrypt$e98766f70edd382cd19d179d74f50c8e$b3ca4b5928aa7e06ff3deff1102220fcb37065263646b3f24337d2672e6e3661"
+  },
+  {
+    "username": "32",
+    "name": "ปัณณ์ ฉิมกลีบ",
+    "grade": "M.4",
+    "clan": "nakkharat",
+    "passwordHash": "scrypt$667b64bb8e521a34ac4c3358578472bd$08a8ea0360b5368c2db7c4008b215bbfe57f6c3981d7a36888661a3580f135d2"
+  },
+  {
+    "username": "33",
+    "name": "รชต สุรสุวรรณกุล",
+    "grade": "M.4",
+    "clan": "mayurawentai",
+    "passwordHash": "scrypt$e203f24fde0402b8ba469ccc0cc72b30$0718fc2e14ae238349eb750d3dd747e34274b1923d8c2eac0442da6a7cb1df76"
+  },
+  {
+    "username": "34",
+    "name": "ศราวิณญ์ ตันติวรรธณ์",
+    "grade": "M.4",
+    "clan": "erawan",
+    "passwordHash": "scrypt$5e29454f4e51a4b4e4afa1581c1afe88$e3135526396376e69ea4bed8566d4893e38482bdd5c13a2161a503b8bc39d4cb"
+  },
+  {
+    "username": "35",
+    "name": "ศุภโชติ ศรีประทิน",
+    "grade": "M.4",
+    "clan": "erawan",
+    "passwordHash": "scrypt$c8cf6e7ea4b7bcce971e421bdcd2dac5$90d260addad17b520f0aad9ef3a5d9222720e1aa1e438457d3e651629b431fe4"
+  },
+  {
+    "username": "36",
+    "name": "กัญญาณัฐ บรรเลง",
+    "grade": "M.4",
+    "clan": "kilen",
+    "passwordHash": "scrypt$e5efa1bcd5f9440e5ea71ed24cfda627$eecc03e3785bfb331b05897239c2b517ca87bcdddf7382502c0877599806a55d"
+  }
+]
