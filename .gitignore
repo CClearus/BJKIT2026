@@ -2,20 +2,15 @@
 # GCC download (setup-gcc.bat installs it again)
 gcc/
 
-# admin password: never on GitHub (it is printed in the server window and kept only on this computer)
-data/admin-password.txt
+# Everything else in data/ IS pushed while the repo is used for testing (problems, tests, uploads,
+# GIFs, clan progress and code, the timer, the admin password).
+# Make the repo private before the real camp.
 
-# live camp state (clan progress, scores, hints and shared code)
-data/clans.json
-data/clan-code.json
-data/timer.json
-
-# student logins: names, password hashes and who is logged in
+# student roster (real students' names) and live login tokens: never on GitHub
 data/students.json
 data/sessions.json
 
-# leftovers: the old single problems file after the move to data/problems/, and half-written saves
-data/problems.json.bak
+# half-written saves
 *.tmp
 
 # ---------- Unity (Game/<project>/) ----------

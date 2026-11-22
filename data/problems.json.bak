@@ -1,0 +1,305 @@
+[
+  {
+    "id": "sum-of-numbers",
+    "number": "67",
+    "name": "กิ่งก่าภาคะวะ",
+    "difficulty": "1",
+    "timeLimit": 1,
+    "memoryLimit": 256,
+    "statement": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<p style=\"text-align: justify\"><span>ในระหว่างช่วงการตั้งแคมป\nเสบียงอาหารก็ได้หมดลง หัวหน้าทีมสำรวจ กุ๊ก ๆ ๆ\nไก่ภาคะวะก็ได้ไปสังเกตเห็นกิ๊งก่ายักษ์ตระกูล </span><b><i><span>Varanus\nSkibiditeus</span></i></b><span><span>&nbsp; </span><span>บนต้นไม้สูงมากกว่า 6 ฟุต 5 ศอก </span>(<span>ไม่เหมือนขนาดของภาคะวะ</span>) <span>เลยคิดว่าถ้าจับมันมากิน\nน่าจะอิ่มอีกยาว แต่ทว่า ต้นไม้ที่มันอยู่นั้นสูงเกินไป\nภาคะวะก็เลยนั่งมองกิ้งก่าอยู่หลายวันและได้สังเกตเห็นว้า ในตอนกลางวัน\nกิ่งก่าจะไต่ลงมาวันละ </span><i>a</i><span>\nเมตรและจะไต่ขึ้นไปตอนกลางคืนคืนละ </span><i>b</i><span> เมตร\nในถานะลูกสมุนน้อยของภาตะวะ\nจงทำระบบคำนวนหาจำนวนวันที่กิ่งก่าตัวนี้จะลงมาถึงพื้นได้</span></span></p>\n\n\n\n\n\n",
+    "input": "<div>\nจำนวนเต็ม&nbsp;<i>h</i>&nbsp;ขนาดต้นไม้</div><div>จำนวนเต็ม <i>a</i> การเคลื่อนที่ตอนกลางวัน</div><div>\nจำนวนเต็ม <i>b</i> การเคลื่อนที่ตอนกลางคืน</div>",
+    "output": "จำนวนวันที่กิ่งก่าใช้ก่อนลงถึงพื้น ในรูปจำนวนเต็ม",
+    "constraints": "<div>9 $\\le $ h $\\le $ 1,000,000</div><div>1 $\\le $ a $&lt;$ b $&lt;$ 100</div>",
+    "samples": [
+      {
+        "input": "10\n2\n1",
+        "output": "4"
+      },
+      {
+        "input": "9\n5\n2",
+        "output": "1"
+      }
+    ],
+    "createdAt": "2026-11-19T14:26:29.623Z",
+    "updatedAt": "2026-11-20T11:34:09.478Z",
+    "madeBy": [
+      {
+        "name": "นายอำเภอปูนปั้น",
+        "avatar": ""
+      },
+      {
+        "name": "วิศวกานต์",
+        "avatar": ""
+      },
+      {
+        "name": "เชฟอชิ",
+        "avatar": ""
+      },
+      {
+        "name": "สถาปัตยแอล",
+        "avatar": ""
+      },
+      {
+        "name": "ศิลปละทิส",
+        "avatar": ""
+      },
+      {
+        "name": "ชั่วต้น",
+        "avatar": ""
+      }
+    ],
+    "hint": "",
+    "mode": "coop",
+    "shared": "// shared.h: the contract between Player 1 and Player 2.\n// Player 1 writes these functions in p1.c; Player 2 calls them from p2.c.\n#ifndef SHARED_H\n#define SHARED_H\n\n// e.g. double to_km(double value, char unit);\n\n#endif\n",
+    "p1Task": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<span>ต้นไม้ถูกวัดมาในหน่วยศอก แต่ภาคะวะวัดกิ้งก่าในหน่วยเมตร\nถ่จะคำนวนต้องใช้เวาลานาน ควรหาวิธีที่จะทำให้การคำนวนของสมาชิกอีกคนสะดวกขึ้น</span>\n\n\n\n",
+    "p2Task": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<p style=\"text-align: justify\"><span>พัฒนาระบบการคำนวนวันเวลาการเดินทางของกิ้งก่า</span></p>\n\n\n\n\n\n",
+    "p1Starter": "#include <stdio.h>\n\nint main(void) {\n",
+    "p2Starter": "\n    \n    return 0;\n}\n",
+    "p1Hint": "",
+    "p2Hint": "",
+    "p1Output": "ไม่มีการแสดงผล ควรจบโค้ดด้วยการให้ค่า <i>h</i>&nbsp;อยู่ในหน่วยเมตร",
+    "p2Output": "แสดงวันที่กิ่งก่าใช้ในรูปจำนวนเต็ม",
+    "p1Samples": [],
+    "p2Samples": [],
+    "p1TestHelper": "",
+    "p2TestHelper": "",
+    "p1Solution": "",
+    "p2Solution": ""
+  },
+  {
+    "id": "p0e6eb5fd9e",
+    "number": "1",
+    "name": "Road Trip Time",
+    "difficulty": "2",
+    "madeBy": [
+      "C Practice"
+    ],
+    "timeLimit": 1,
+    "memoryLimit": 256,
+    "statement": "<p>Two friends are planning a road trip, but their map uses <b>miles</b> while their car shows <b>kilometres</b>. Work together to find how many hours the trip takes.</p><p>1 mile $= 1.609344$ km.</p>",
+    "input": "<p>Line 1: a distance $D$ and its unit, <code>km</code> or <code>mi</code>.</p><p>Line 2: a speed $S$ and its unit, <code>kmh</code> or <code>mph</code>.</p>",
+    "output": "<p>The travel time in hours, rounded to 2 decimal places.</p>",
+    "constraints": "<ul><li>$0 < D, S \\le 10^6$</li></ul>",
+    "hint": "<p>Player 1: <code>strcmp(du, \"mi\") == 0</code> means the distance is in miles. Player 2: <code>d</code> and <code>s</code> are already in km and km/h when your part starts.</p>",
+    "mode": "coop",
+    "shared": "",
+    "p1Task": "<p>You start the program. Read the trip: a distance with its unit (<code>km</code> or <code>mi</code>) and a speed with its unit (<code>kmh</code> or <code>mph</code>), into <code>d</code>, <code>du</code>, <code>s</code> and <code>su</code>.</p><p>Then turn miles into kilometres, so that Player 2 can use <code>d</code> and <code>s</code> straight away. 1 mile $= 1.609344$ km.</p>",
+    "p2Task": "<p>You finish the program. Player 1 leaves you <code>d</code> (km) and <code>s</code> (km/h). Work out how many hours the trip takes and print it.</p>",
+    "p1Starter": "#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    double d, s;\n    char du[8], su[8];\n    // Player 1: read the trip, then turn miles into km\n    \n",
+    "p2Starter": "    // Player 2: use d and s to print the hours\n    \n    return 0;\n}\n",
+    "samples": [
+      {
+        "input": "150 km\n60 kmh\n",
+        "output": "2.50\n"
+      },
+      {
+        "input": "100 mi\n50 mph\n",
+        "output": "2.00\n"
+      }
+    ],
+    "createdAt": "2026-11-19T16:04:45.558Z",
+    "updatedAt": "2026-11-19T17:09:49.262Z",
+    "p1TestHelper": "    printf(\"%.3f %.3f\\n\", d, s);\n    return 0;\n}\n",
+    "p2TestHelper": "#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    double d, s;\n    char du[8], su[8];\n    scanf(\"%lf %7s %lf %7s\", &d, du, &s, su);\n    if (strcmp(du, \"mi\") == 0) d = d * 1.609344;\n    if (strcmp(su, \"mph\") == 0) s = s * 1.609344;\n",
+    "p1Output": "<p>Nothing is printed by you. When your part ends, <code>d</code> must hold the distance in km and <code>s</code> the speed in km/h. The examples show their values with 3 decimals.</p>",
+    "p2Output": "<p>One number: the hours, $d \\div s$, rounded to 2 decimal places. Then close <code>main()</code>.</p>",
+    "p1Samples": [
+      {
+        "input": "150 km\n60 kmh\n",
+        "output": "150.000 60.000\n"
+      },
+      {
+        "input": "100 mi\n50 mph\n",
+        "output": "160.934 80.467\n"
+      }
+    ],
+    "p2Samples": [
+      {
+        "input": "d = 150, s = 60\n",
+        "output": "2.50\n"
+      },
+      {
+        "input": "d = 160.934, s = 80.467\n",
+        "output": "2.00\n"
+      }
+    ],
+    "p1Hint": "<p>Use <code>strcmp(du, \"mi\") == 0</code> to spot miles, then multiply <code>d</code> by $1.609344$. Do the same for <code>su</code> and <code>\"mph\"</code>.</p>",
+    "p2Hint": "<p>Hours is just distance divided by speed: <code>d / s</code>. Print it with <code>printf(\"%.2f\\n\", ...)</code>.</p>"
+  },
+  {
+    "id": "pdbfb54fc8e",
+    "number": "2",
+    "name": "สร้างบ้านง่าย ๆ",
+    "difficulty": "2",
+    "madeBy": [
+      {
+        "name": "เพ่วิศวกานต์",
+        "avatar": "uploads/a1405ac1d803f3d99306a3d5d4d00bb0.jpg"
+      },
+      {
+        "name": "เกลาหลังปูนปั้น",
+        "avatar": "uploads/5542b54c19745ede4b3a08c4e5b76050.png"
+      }
+    ],
+    "timeLimit": 1,
+    "memoryLimit": 256,
+    "statement": "<p>เพ่วิศวกานต์กับเชฟอชิกำลังสำรวจทะเลทราย และต้องการสร้างบ้านหนึ่งหลังเพื่อไม่ให้โดนหมูตี บ้านเป็นรูปทรงสี่เหลี่ยมมุมฉาก และต้องสร้างด้วย Gold Block ทั้งหลัง โชคดีที่เพ่วิศวกานต์ไปขโมย Diamond Pickaxe ที่มีความทนทานไม่จำกัด และมี Enchantment Fortune มาจาก Villager ได้</p><p>ทั้งสองจึงต้องลงไปขุด Gold Ore ในถ้ำที่มีทองอยู่ไม่จำกัด คุณในฐานะวิศวนิวเคลียร์วรินทร จะต้องหาว่าเพ่วิศวกานต์กับเชฟอชิต้องขุด Gold Ore ทั้งหมดอย่างน้อยกี่บล็อก จึงจะได้ทองพอสร้างบ้านได้สำเร็จ</p><p><img src=\"uploads/4f9f88a8078cc22101c5bfb7fccc918c.png\" alt=\"Gold Ingot 9 ชิ้น ประกอบเป็น Gold Block 1 ก้อน\" style=\"width: 47.5%; display: block; margin-left: auto; margin-right: auto\"></p><p style=\"text-align: center\">วิธีประกอบ Gold Block: ใช้ Gold Ingot 9 ชิ้น ต่อ Gold Block 1 ก้อน</p><p>ขุด Gold Ore 1 บล็อก จะได้ Gold Ingot ตามระดับ Fortune ของ Pickaxe ดังนี้</p><table style=\"margin-left: auto; margin-right: auto\"><thead><tr><th>ระดับ Enchantment</th><th>Gold Ingot ที่ได้ต่อ 1 บล็อก</th></tr></thead><tbody><tr><td style=\"text-align: center\"><b>Fortune I</b></td><td style=\"text-align: center\"><b>2 ชิ้น</b></td></tr><tr><td style=\"text-align: center\"><b>Fortune II</b></td><td style=\"text-align: center\"><b>3 ชิ้น</b></td></tr><tr><td style=\"text-align: center\"><b>Fortune III</b></td><td style=\"text-align: center\"><b>4 ชิ้น</b></td></tr></tbody></table><p>ถ้าทองที่ขุดได้เกินกว่าที่ใช้ ทองที่เหลือเก็บไว้ได้ แต่ทองต้องไม่ขาด</p>",
+    "input": "<p><b>บรรทัดที่ 1:</b> จำนวนเต็ม $w$ แทนความกว้างของบ้าน<br><b>บรรทัดที่ 2:</b> จำนวนเต็ม $l$ แทนความยาวของบ้าน<br><b>บรรทัดที่ 3:</b> จำนวนเต็ม $h$ แทนความสูงของบ้าน<br><b>บรรทัดที่ 4:</b> จำนวนเต็ม $f$ แทนระดับ Fortune ของ Pickaxe (1 = Fortune I, 2 = Fortune II, 3 = Fortune III)</p>",
+    "output": "<p>จำนวนเต็มหนึ่งจำนวน คือจำนวน Gold Ore ที่น้อยที่สุดที่เพ่วิศวกานต์และเชฟอชิต้องขุด</p>",
+    "constraints": "<p>$0 &lt; w \\le l \\le 100$</p><p>$0 &lt; h &lt; 256$</p><p>$1 \\le f \\le 3$</p>",
+    "hint": "",
+    "p1Hint": "",
+    "p2Hint": "",
+    "mode": "coop",
+    "shared": "",
+    "p1Task": "<p>ก่อนเริ่มขุด เพ่วิศวกานต์และเชฟอชิต้องคำนวณปริมาณทองทั้งหมดที่ต้องใช้สร้างบ้าน โดยบ้านใช้ Gold Block เท่ากับพื้นที่ผิวของทรงสี่เหลี่ยมมุมฉาก โดยพื้นที่ผิว $1$ ตารางหน่วย ใช้ Gold Block $1$ ก้อน พื้นที่ผิวคำนวณได้จากสูตร</p><p style=\"text-align: center\">$$2 \\times (w \\times l + w \\times h + l \\times h)$$</p>",
+    "p2Task": "<p>ให้คำนวณว่าต้องขุด Gold Ore อย่างน้อยกี่บล็อกจากการคำนวนของ จึงจะได้ทองพอสร้างบ้านหลังนี้</p><p>ถ้าหารไม่ลงตัว ต้องขุดเพิ่มอีก 1 บล็อก Gold Ingot ที่เหลือไม่ต้องใช้</p>",
+    "p1Starter": "#include <stdio.h>\n\nint main(void) {\n\n\n",
+    "p2Starter": "\n\n    return 0;\n}\n",
+    "p1Output": "<p>ไม่ต้องแสดงผลใด ๆ ให้สร้างตัวแปร <code>n</code>&nbsp;ที่เก็บจำนวน Gold Ingot ทั้งหมดที่ต้องใช้</p>",
+    "p2Output": "<p>แสดงจำนวน Gold Ore ที่ต้องขุด เป็นจำนวนเต็มหนึ่งจำนวน</p>",
+    "p1Samples": [
+      {
+        "input": "1\n2\n3\n1\n",
+        "output": "n = 198\n"
+      },
+      {
+        "input": "5\n8\n6\n2\n",
+        "output": "n = 2124\n"
+      }
+    ],
+    "p2Samples": [
+      {
+        "input": "n = 54, f = 1\n",
+        "output": "27\n"
+      },
+      {
+        "input": "n = 2124, f = 2\n",
+        "output": "708\n"
+      },
+      {
+        "input": "n = 198, f = 3\n",
+        "output": "50\n"
+      }
+    ],
+    "p1TestHelper": "    printf(\"%d\\n\", n);\n    return 0;\n}\n",
+    "p2TestHelper": "#include <stdio.h>\n\nint main(void) {\n    int w, l, h, f, n,r;\n    scanf(\"%d %d %d %d\", &w, &l, &h, &f);\n    n = 2 * (w * l + w * h + l * h) * 9;\n",
+    "p1Solution": "#include <stdio.h>\n\nint main(void) {\n    int w, l, h, f, n;\n    // Player 1: อ่าน w, l, h, f แล้วเก็บจำนวน Gold Ingot ทั้งหมดไว้ใน n\n    scanf(\"%d %d %d %d\", &w, &l, &h, &f);\n    n = 2 * (w * l + w * h + l * h) * 9;\n",
+    "p2Solution": "\n    int per = f + 1;\n    printf(\"%d\\n\", (n + per - 1) / per);\n    return 0;\n}\n",
+    "samples": [
+      {
+        "input": "1\n1\n1\n1\n",
+        "output": "27\n"
+      },
+      {
+        "input": "6\n7\n6\n2\n",
+        "output": "720\n"
+      },
+      {
+        "input": "1\n2\n3\n3\n",
+        "output": "50\n"
+      }
+    ],
+    "createdAt": "2026-11-20T10:48:43.865Z",
+    "updatedAt": "2026-11-20T23:04:14.430Z"
+  },
+  {
+    "id": "p22bdc66576",
+    "number": "1",
+    "name": "ชื่อ",
+    "difficulty": "1",
+    "madeBy": [],
+    "timeLimit": 1,
+    "memoryLimit": 50,
+    "statement": "มีแมวจับปลา ดูปลาจากบ้อง",
+    "input": "",
+    "output": "",
+    "constraints": "",
+    "hint": "",
+    "p1Hint": "",
+    "p2Hint": "",
+    "mode": "coop",
+    "shared": "",
+    "p1Task": "",
+    "p2Task": "",
+    "p1Starter": "#include <stdio.h>\n\nint main(void) {\n    // Player 1\n    \n",
+    "p2Starter": "    // Player 2\n    \n    return 0;\n}\n",
+    "p1Output": "",
+    "p2Output": "",
+    "p1Samples": [],
+    "p2Samples": [],
+    "p1TestHelper": "",
+    "p2TestHelper": "",
+    "p1Solution": "",
+    "p2Solution": "",
+    "samples": [],
+    "createdAt": "2026-11-20T15:26:45.651Z",
+    "updatedAt": "2026-11-20T23:43:03.596Z"
+  },
+  {
+    "id": "pc832f9ec3a",
+    "number": "68",
+    "name": "Snow White ยอดนัก Larp",
+    "difficulty": "1",
+    "madeBy": [],
+    "timeLimit": 1,
+    "memoryLimit": 256,
+    "statement": "<div>กาลครั้งหนึ่งนานมาแล้ว ณ อาณาจักรอันแสนสงบสุขที่ปกคลุมไปด้วยปุยหิมะสีขาวบริสุทธิ์ มีพระราชินีผู้แสนอ่อนโยนพระองค์หนึ่งประทับอยู่ริมหน้าต่างไม้มะเกลือ พระนางทรงอธิษฐานขอให้มีพระธิดาที่มีผิวขาวผ่องดุจหิมะ ริมฝีปากแดงระเรื่อดุจโลหิต และเส้นผมดำขลับดุจไม้มะเกลือ ไม่นานนักคำอธิษฐานของพระนางก็เป็นจริงเมื่อเจ้าหญิงน้อยนามว่า \"สโนว์ไวท์\" ได้ถือกำเนิดขึ้น ทว่าความสุขนั้นกลับอยู่ได้ไม่นานนักเมื่อพระราชินีผู้แสนดีได้สิ้นพระชนม์ลงหลังจากให้กำเนิดพระธิดาได้ไม่นาน กาลเวลาผ่านไป พระราชาผู้โศกเศร้าจึงได้อภิเษกสมรสใหม่กับสตรีผู้มีรูปโฉมงดงามตระการตา หากแต่เบื้องหลังความงามนั้นกลับซ่อนจิตใจที่เย่อหยิ่ง ริษยา และลุ่มหลงในมนตร์ดำไว้อย่างลึกซึ้ง พระราชินีองค์ใหม่ไม่อาจทนเห็นผู้ใดงดงามเกินหน้าพระนางได้ ในทุกๆ วัน พระนางจะเสด็จไปประทับยืนเบื้องหน้ากระจกวิเศษคู่พระทัยแล้วตรัสถามด้วยสุรเสียงอันเยือกเย็นว่า&nbsp;</div><div><em><br></em></div><div><b><em>\"โอมมรึกกึกก๋ย กระจกวิเศษจงบอกข้าเถิด ใครคือผู้ที่ Larp ที่สุดในปฐพี\"</em>&nbsp;</b></div><div><br></div><div>กระจกวิเศษจึงได้เอ่ยความจริงที่ทิ่มแทงหัวใจของพระราชินีว่า บัดนี้ \"สโนว์ไวท์\" คือผู้ที่ Larp ที่สุดโดย<em>ปฐพี พร้อมกับยอดนัก Larp อีก 4 คน</em></div><div><br></div><div>โดยกระจกวิเศษได้แสดงค่าความ Larp ของแต่ละคนที่ปรากฏขึ้นมา โดยทุกครั้งรายชื่อคนจะปรากฏขึ้นมาไม่เหมือนกัน ซึ่งค่าความ Larp ทุกคนนั้นปรากฏยกเว้นของ สโนว์ไวท์ พระราชินิจึงได้จ้างพวกคุณมาทำระบบเรียงค่าความ Larp เพื่อจำนำมาทำสถิติ มาการคำนวนหาค่าความ Larp ของสโนว์ไวท์ได้</div><div></div><div><div></div></div>",
+    "input": "รับชืื่อคนและจำนวนความ Larp เป็นจำนวนเต็ม 5 รอบ โดยทุก ๆ การ run code จะมี สโนไวท์ประกอบได้ด้วยศึ่งมีค่า larp = 999",
+    "output": "เรียงลำดับชื่อโดยอ้างอิงจากค่า larp มากไปน้อย โดยแสดงชื่อ ตามด้วยค่าความ larp ถ้าเป็น snow white จะไม่มีค่าความ larp",
+    "constraints": "",
+    "hint": "",
+    "p1Hint": "",
+    "p2Hint": "",
+    "mode": "coop",
+    "shared": "",
+    "p1Task": "",
+    "p2Task": "",
+    "p1Starter": "#include <stdio.h>\n\nint main(void) {\n    // Player 1\n    \n",
+    "p2Starter": "    // Player 2\n    \n    return 0;\n}\n",
+    "p1Output": "",
+    "p2Output": "",
+    "p1Samples": [],
+    "p2Samples": [],
+    "p1TestHelper": "",
+    "p2TestHelper": "",
+    "p1Solution": "",
+    "p2Solution": "",
+    "samples": [],
+    "createdAt": "2026-11-20T23:30:53.248Z",
+    "updatedAt": "2026-11-21T16:38:23.743Z"
+  },
+  {
+    "id": "p874013436b",
+    "number": "69",
+    "name": "TIKI TIKI",
+    "difficulty": "1",
+    "madeBy": [],
+    "timeLimit": 1,
+    "memoryLimit": 256,
+    "statement": "<figure data-video=\"uploads/0d7d4469f9d949e3b21689cd5fae7500.mp4\"></figure><p>adad</p>",
+    "input": "",
+    "output": "",
+    "constraints": "",
+    "hint": "",
+    "p1Hint": "",
+    "p2Hint": "",
+    "mode": "solo",
+    "shared": "",
+    "p1Task": "",
+    "p2Task": "",
+    "p1Starter": "",
+    "p2Starter": "",
+    "p1Output": "",
+    "p2Output": "",
+    "p1Samples": [],
+    "p2Samples": [],
+    "p1TestHelper": "",
+    "p2TestHelper": "",
+    "p1Solution": "",
+    "p2Solution": "",
+    "samples": [],
+    "createdAt": "2026-11-20T23:43:31.336Z",
+    "updatedAt": "2026-11-20T23:43:31.336Z"
+  }
+]
