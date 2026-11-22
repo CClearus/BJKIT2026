@@ -1,6 +1,6 @@
 // Online C/C++ practice site.
 // - Serves the website in ./public
-// - Stores problems in ./data/problems.json and images in ./data/uploads
+// - Stores each problem in its own file ./data/problems/<id>.json and images in ./data/uploads
 // - Compiles submitted code with GCC from ./gcc/mingw64/bin (installed by setup-gcc.bat),
 //   or from the system PATH (e.g. a Linux server with build-essential).
 // No npm packages needed: run with `node server.js`.
@@ -13,15 +13,18 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const clans = require('./clans');
+const students = require('./students');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
-const PROBLEMS_FILE = path.join(DATA_DIR, 'problems.json');
+const PROBLEMS_DIR = path.join(DATA_DIR, 'problems');            // one <id>.json per problem
+const OLD_PROBLEMS_FILE = path.join(DATA_DIR, 'problems.json');  // old single-file store, migrated on start
 const TESTS_DIR = path.join(DATA_DIR, 'tests');
 const ADMIN_FILE = path.join(DATA_DIR, 'admin-password.txt');
+const GIF_DIR = path.join(DATA_DIR, 'gif');   // loading-screen GIFs: drop more in, no restart needed
 const IS_WIN = process.platform === 'win32';
 const LOCAL_GCC_BIN = path.join(__dirname, 'gcc', 'mingw64', 'bin');
 
@@ -36,6 +39,7 @@ const LIMITS = {
   maxConcurrentJobs: 2,
   maxProblemBytes: 4 * 1024 * 1024,
   maxUploadBytes: 5 * 1024 * 1024,
+  maxVideoBytes: 100 * 1024 * 1024,
   maxTests: 100,
   maxTestsBytes: 64 * 1024 * 1024,   // all test cases of one problem together
   maxJudgeMs: 90000,                 // stop judging after this; remaining tests are skipped
@@ -83,8 +87,9 @@ const SEED_PROBLEM = {
   ],
 };
 
-// Difficulty levels: '1'..'5' stars, '6' (purple), 'special'. Old easy/medium/hard are converted.
-const LEVELS = ['1', '2', '3', '4', '5', '6', 'special'];
+// Difficulty levels: '0' (example missions, no points), '1'..'5' stars, '6' (purple), 'special'.
+// Old easy/medium/hard are converted.
+const LEVELS = ['0', '1', '2', '3', '4', '5', '6', 'special'];
 function normalizeLevel(d) {
   const s = String(d ?? '').toLowerCase();
   if (LEVELS.includes(s)) return s;
@@ -92,34 +97,81 @@ function normalizeLevel(d) {
 }
 const levelOrder = (l) => LEVELS.indexOf(normalizeLevel(l));
 
+// Each problem is its own file: data/problems/<id>.json. Files can be added, edited or removed
+// by hand while the server is stopped (the file name must match the problem's "id").
+const ID_RE = /^[\w-]+$/;
+const problemFile = (id) => path.join(PROBLEMS_DIR, `${id}.json`);
+
 let problems = [];
 function loadProblems() {
-  try {
-    problems = JSON.parse(fs.readFileSync(PROBLEMS_FILE, 'utf8'));
-    let migrated = false;
-    for (const p of problems) {
-      const lv = normalizeLevel(p.difficulty);
-      if (lv !== p.difficulty) { p.difficulty = lv; migrated = true; }
-      if (p.madeBy != null && !Array.isArray(p.madeBy)) { p.madeBy = p.madeBy ? [String(p.madeBy)] : []; migrated = true; }
-      if ('publishedBy' in p) { delete p.publishedBy; migrated = true; }
-      if ('paperLang' in p) { delete p.paperLang; migrated = true; }
+  fs.mkdirSync(PROBLEMS_DIR, { recursive: true });
+  problems = [];
+  for (const name of fs.readdirSync(PROBLEMS_DIR)) {
+    if (!name.endsWith('.json')) continue;
+    try {
+      // (some Windows editors put an invisible BOM at the start of the file: skip it)
+      const p = JSON.parse(fs.readFileSync(path.join(PROBLEMS_DIR, name), 'utf8').replace(/^﻿/, ''));
+      p.id = name.slice(0, -5);   // the file name is the id
+      if (ID_RE.test(p.id)) problems.push(p);
+      else console.warn(`Skipped problem file ${name}: use only letters, digits, _ and - in the name.`);
+    } catch (e) {
+      console.warn(`Skipped problem file ${name}: ${e.message}`);
     }
-    if (migrated) saveProblems();
-  } catch {
+  }
+
+  // One-time move from the old data/problems.json (kept as problems.json.bak).
+  if (fs.existsSync(OLD_PROBLEMS_FILE)) {
+    try {
+      const old = JSON.parse(fs.readFileSync(OLD_PROBLEMS_FILE, 'utf8'));
+      for (const p of Array.isArray(old) ? old : []) {
+        if (!p || !ID_RE.test(String(p.id)) || problems.some((x) => x.id === p.id)) continue;
+        problems.push(p);
+        saveProblem(p);
+      }
+      fs.renameSync(OLD_PROBLEMS_FILE, OLD_PROBLEMS_FILE + '.bak');
+      console.log(`Moved problems into ${PROBLEMS_DIR} (old file kept as problems.json.bak).`);
+    } catch (e) {
+      console.error('Could not move the old problems.json:', e.message);
+    }
+  }
+
+  for (const p of problems) {
+    let migrated = false;
+    const lv = normalizeLevel(p.difficulty);
+    if (lv !== p.difficulty) { p.difficulty = lv; migrated = true; }
+    if (p.madeBy != null && !Array.isArray(p.madeBy)) { p.madeBy = p.madeBy ? [String(p.madeBy)] : []; migrated = true; }
+    if ('publishedBy' in p) { delete p.publishedBy; migrated = true; }
+    if ('paperLang' in p) { delete p.paperLang; migrated = true; }
+    if (migrated) saveProblem(p);
+  }
+
+  if (!problems.length) {
     const now = new Date().toISOString();
-    problems = [{ ...SEED_PROBLEM, createdAt: now, updatedAt: now }];
-    saveProblems();
+    const seed = { ...SEED_PROBLEM, createdAt: now, updatedAt: now };
+    problems = [seed];
+    saveProblem(seed);
   }
 }
-let saving = Promise.resolve();
-function saveProblems() {
-  const data = JSON.stringify(problems, null, 2);
-  saving = saving.then(async () => {
-    const tmp = PROBLEMS_FILE + '.tmp';
+
+// Writes are queued per problem so two quick saves of the same problem never interleave.
+const saving = new Map();
+function queueWrite(id, job) {
+  const next = (saving.get(id) || Promise.resolve()).then(job)
+    .catch((e) => console.error(`Could not save problem ${id}:`, e));
+  saving.set(id, next);
+  next.finally(() => { if (saving.get(id) === next) saving.delete(id); });
+  return next;
+}
+function saveProblem(p) {
+  const data = JSON.stringify(p, null, 2);
+  return queueWrite(p.id, async () => {
+    const file = problemFile(p.id), tmp = file + '.tmp';
     await fsp.writeFile(tmp, data);
-    await fsp.rename(tmp, PROBLEMS_FILE);
-  }).catch((e) => console.error('Could not save problems:', e));
-  return saving;
+    await fsp.rename(tmp, file);
+  });
+}
+function removeProblemFile(id) {
+  return queueWrite(id, () => fsp.rm(problemFile(id), { force: true }));
 }
 const byNumber = (a, b) => (levelOrder(a.difficulty) - levelOrder(b.difficulty))
   || String(a.number).localeCompare(String(b.number), undefined, { numeric: true });
@@ -128,15 +180,26 @@ function numberTaken(p, exceptId) {
   return problems.some((x) => x.id !== exceptId && x.difficulty === p.difficulty
     && String(x.number).toLowerCase() === String(p.number).toLowerCase());
 }
-const levelName = (l) => (l === 'special' ? 'The ◆ Special level' : `The ${'★'.repeat(Number(l))} level`);
+const levelName = (l) => (l === 'special' ? 'The ◆ Special level' : l === '0' ? 'The example level (0 stars)' : `The ${'★'.repeat(Number(l))} level`);
 // Hints: 'global' (p.hint) for the whole problem; co-op problems also have one per player (p1Hint, p2Hint).
 const HINT_FIELDS = { global: 'hint', p1: 'p1Hint', p2: 'p2Hint' };
-const hasText = (html) => !!html && (html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() !== '' || /<img/i.test(html));
+const hasText = (html) => !!html && (html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() !== '' || /<img|data-video=/i.test(html));
 const hasHint = (p, scope = 'global') => hasText(p[HINT_FIELDS[scope]]);
 const summary = (p) => ({ id: p.id, number: p.number, name: p.name, difficulty: p.difficulty, mode: p.mode === 'coop' ? 'coop' : 'solo' });
 
 const playerSamples = (list) => (Array.isArray(list) ? list : []).slice(0, 20)
   .map((s) => ({ input: String((s && s.input) ?? '').slice(0, 1e5), output: String((s && s.output) ?? '').slice(0, 1e5) }));
+
+// "Made by": [{ name, avatar }]. avatar is a picture uploaded through /api/upload, or ''.
+// Older problems stored plain name strings; those still load and become { name, avatar: '' } on save.
+const AVATAR_URL = /^uploads\/[a-f0-9]{32}\.(?:png|jpg|gif|webp)$/;
+function cleanAuthors(v) {
+  return (Array.isArray(v) ? v : [v]).slice(0, 20).map((a) => {
+    const o = a && typeof a === 'object' ? a : { name: a };
+    const avatar = String(o.avatar || '');
+    return { name: String(o.name ?? '').slice(0, 100).trim(), avatar: AVATAR_URL.test(avatar) ? avatar : '' };
+  }).filter((a) => a.name);
+}
 
 function cleanProblem(body) {
   const str = (v, max) => String(v ?? '').slice(0, max);
@@ -145,8 +208,7 @@ function cleanProblem(body) {
     number: str(body.number, 20).trim(),
     name: str(body.name, 200).trim(),
     difficulty: normalizeLevel(body.difficulty),
-    madeBy: (Array.isArray(body.madeBy) ? body.madeBy : [body.madeBy]).slice(0, 20)
-      .map((a) => str(a, 100).trim()).filter(Boolean),
+    madeBy: cleanAuthors(body.madeBy),
     timeLimit: num(body.timeLimit, 0.1, LIMITS.maxRunTimeoutMs / 1000, 1),
     memoryLimit: Math.round(num(body.memoryLimit, 1, 4096, 256)),
     statement: str(body.statement, 1e6),
@@ -184,6 +246,24 @@ function cleanProblem(body) {
   if (!p.name) throw new Error('The problem needs a name.');
   if (!p.number) throw new Error('The problem needs a number.');
   return p;
+}
+
+// =============== camp timer (data/timer.json) ===============
+// The admin sets a length, then starts, pauses and resumes it. Running: endsAt is when it hits 0.
+// Paused or not started: remainingMs is what's left. durationMs 0 = no timer (nothing is locked).
+// When it reaches 0, Submit is closed for students (Run still works).
+const TIMER_FILE = path.join(DATA_DIR, 'timer.json');
+let timer = { durationMs: 0, remainingMs: 0, endsAt: null };
+try { timer = { ...timer, ...JSON.parse(fs.readFileSync(TIMER_FILE, 'utf8')) }; } catch {}
+const saveTimer = () => fsp.writeFile(TIMER_FILE, JSON.stringify(timer)).catch((e) => console.error('Could not save the timer:', e));
+const timeLeftMs = () => (timer.endsAt ? Math.max(0, timer.endsAt - Date.now()) : timer.remainingMs);
+const timeIsUp = () => timer.durationMs > 0 && timeLeftMs() === 0;
+function timerStatus() {
+  const left = timeLeftMs();
+  const status = !timer.durationMs ? 'off' : left === 0 ? 'ended' : timer.endsAt ? 'running'
+    : left < timer.durationMs ? 'paused' : 'ready';
+  // leftMs, not the end time: the browser counts down from its own clock, so a wrong PC clock doesn't matter
+  return { status, leftMs: left, durationMs: timer.durationMs };
 }
 
 // =============== hidden test cases (data/tests/<problem id>.json) ===============
@@ -394,11 +474,19 @@ const MIME = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
   '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff': 'font/woff', '.woff2': 'font/woff2',
+  '.mp4': 'video/mp4', '.webm': 'video/webm',
 };
 
 function sendJson(res, status, obj) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(obj));
+}
+// Pages and calls that need a logged-in student. The header tells the page to go to the login page
+// (e.g. after the same student logged in on another computer).
+const LOGIN_PAGES = new Set(['/', '/index.html', '/play.html']);
+function needLogin(res) {
+  res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Login-Required': '1' });
+  res.end(JSON.stringify({ error: 'Please log in again.', login: true }));
 }
 
 function readBody(req, max) {
@@ -415,12 +503,13 @@ function readBody(req, max) {
 }
 async function readJson(req, max) { return JSON.parse((await readBody(req, max)).toString('utf8')); }
 
-async function serveFile(res, file) {
+async function serveFile(res, file, extraHeaders = {}) {
   try {
     const data = await fsp.readFile(file);
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
       'X-Content-Type-Options': 'nosniff',
+      ...extraHeaders,
     });
     res.end(data);
   } catch {
@@ -429,11 +518,33 @@ async function serveFile(res, file) {
   }
 }
 
-function serveStatic(pathname, res) {
+// Videos are sent in pieces (HTTP Range) so the browser can start playing and loop without
+// downloading the whole file first.
+async function serveMedia(req, res, file) {
+  let stat;
+  try { stat = await fsp.stat(file); } catch { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
+  const headers = {
+    'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+    'Accept-Ranges': 'bytes', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=86400',
+  };
+  let start = 0, end = stat.size - 1;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (m && (m[1] || m[2])) {
+    if (m[1]) { start = Number(m[1]); if (m[2]) end = Math.min(Number(m[2]), end); }
+    else start = Math.max(0, stat.size - Number(m[2]));
+    if (start > end) { res.writeHead(416, { 'Content-Range': `bytes */${stat.size}` }); return res.end(); }
+    res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${stat.size}`, 'Content-Length': end - start + 1 });
+  } else {
+    res.writeHead(200, { ...headers, 'Content-Length': stat.size });
+  }
+  fs.createReadStream(file, { start, end }).on('error', () => res.destroy()).pipe(res);
+}
+
+function serveStatic(pathname, res, extraHeaders) {
   if (pathname.endsWith('/')) pathname += 'index.html';
   const file = path.normalize(path.join(PUBLIC_DIR, pathname));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(403); return res.end('Forbidden'); }
-  return serveFile(res, file);
+  return serveFile(res, file, extraHeaders);
 }
 
 function imageType(buf) {
@@ -441,6 +552,11 @@ function imageType(buf) {
   if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
   if (buf.length > 6 && buf.toString('ascii', 0, 4) === 'GIF8') return 'gif';
   if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return null;
+}
+function videoType(buf) {
+  if (buf.length > 12 && buf.toString('ascii', 4, 8) === 'ftyp') return 'mp4';   // .mp4 / .m4v / .mov-style files
+  if (buf.length > 4 && buf.readUInt32BE(0) === 0x1a45dfa3) return 'webm';
   return null;
 }
 
@@ -468,9 +584,47 @@ async function handle(req, res) {
     return sendJson(res, 200, { gcc: gccVersion });
   }
 
+  // ---- student login ----
+  if (pathname === '/api/login' && method === 'POST') {
+    const ip = req.socket.remoteAddress || '';
+    const wait = students.blockedFor(ip);
+    if (wait) return sendJson(res, 429, { error: `Too many wrong tries. Wait ${wait} seconds and try again.` });
+    let body;
+    try { body = await readJson(req, 4096); } catch { return sendJson(res, 400, { error: 'Bad request.' }); }
+    const r = students.login(body.username, body.password);
+    if (!r) { students.noteFail(ip); return sendJson(res, 401, { error: 'Wrong username or password.' }); }
+    students.noteOk(ip);
+    res.setHeader('Set-Cookie', r.cookie);
+    return sendJson(res, 200, { ok: true, user: students.publicUser(r.user) });
+  }
+  if (pathname === '/api/logout' && method === 'POST') {
+    res.setHeader('Set-Cookie', students.logout(req));
+    return sendJson(res, 200, { ok: true });
+  }
+  if (pathname === '/api/me' && method === 'GET') {
+    const u = students.userOf(req);
+    return u ? sendJson(res, 200, { user: students.publicUser(u) }) : needLogin(res);
+  }
+
+  if (pathname === '/api/timer' && method === 'GET') return sendJson(res, 200, timerStatus());
+
+  // Loading screen: every .gif in data/gif (read fresh each time, so new files show up straight away).
+  if (pathname === '/api/loading-gifs' && method === 'GET') {
+    let names = [];
+    try { names = (await fsp.readdir(GIF_DIR)).filter((n) => /\.gif$/i.test(n)); } catch {}
+    return sendJson(res, 200, names.map((n) => 'loading-gif/' + encodeURIComponent(n)));
+  }
+
   // ---- problems (public read) ----
   if (pathname === '/api/problems' && method === 'GET') {
-    return sendJson(res, 200, [...problems].sort(byNumber).map(summary));
+    // suites: which test sets the mission has (only sets with at least one test), for the map's [T][1][2] boxes
+    const list = [];
+    for (const p of [...problems].sort(byNumber)) {
+      const suites = [];
+      for (const s of p.mode === 'coop' ? SUITES : ['team']) if (await testCount(p.id, s)) suites.push(s);
+      list.push({ ...summary(p), suites });
+    }
+    return sendJson(res, 200, list);
   }
   if (problemMatch && method === 'GET') {
     const p = problems.find((x) => x.id === problemMatch[1]);
@@ -493,6 +647,7 @@ async function handle(req, res) {
   }
   // A player used one of their hints on this problem.
   if (hintMatch && method === 'GET') {
+    if (!students.userOf(req)) return needLogin(res);
     const p = problems.find((x) => x.id === hintMatch[1]);
     // ?for=p1 / p2 asks for one player's hint; nothing else is sent
     const scope = HINT_FIELDS[url.searchParams.get('for')] ? url.searchParams.get('for') : 'global';
@@ -505,8 +660,12 @@ async function handle(req, res) {
 
   // ---- clans: shared progress, score, hints and code ----
   if (pathname === '/api/clans' && method === 'GET') return sendJson(res, 200, clans.CLANS);
-  if (pathname === '/api/clan/state' && method === 'GET') return sendJson(res, 200, clans.stateFor(clans.clanOf(req), problems));
+  if (pathname === '/api/clan/state' && method === 'GET') {
+    if (!students.userOf(req)) return needLogin(res);
+    return sendJson(res, 200, clans.stateFor(clans.clanOf(req), problems));
+  }
   if (clanCodeMatch) {
+    if (!students.userOf(req)) return needLogin(res);
     const clan = clans.clanOf(req);
     if (!clan) return sendJson(res, 400, { error: 'Not playing for a clan.' });
     const pid = clanCodeMatch[1];
@@ -526,14 +685,39 @@ async function handle(req, res) {
   }
 
   // ---- admin ----
-  const adminRoute = pathname.startsWith('/api/admin/') || pathname === '/api/upload'
+  const adminRoute = pathname.startsWith('/api/admin/') || pathname === '/api/upload' || pathname === '/api/upload-video'
     || (pathname === '/api/problems' && method === 'POST') || (problemMatch && method !== 'GET') || testsMatch;
   if (adminRoute && !isAdmin(req)) return sendJson(res, 401, { error: 'Wrong admin password.' });
 
   if (pathname === '/api/admin/check') return sendJson(res, 200, { ok: true });
 
+  // camp timer: { action: 'set', seconds } | 'start' (also resumes) | 'pause' | 'off'
+  if (pathname === '/api/admin/timer' && method === 'POST') {
+    let body;
+    try { body = await readJson(req, 4096); } catch { return sendJson(res, 400, { error: 'Bad request.' }); }
+    const left = timeLeftMs();
+    if (body.action === 'set') {
+      const seconds = body.seconds != null ? Number(body.seconds) : Number(body.minutes) * 60;
+      if (!Number.isFinite(seconds) || seconds < 1 || seconds > 7 * 24 * 3600) return sendJson(res, 400, { error: 'Enter a time between 1 second and 7 days.' });
+      const ms = Math.round(seconds) * 1000;
+      timer = { durationMs: ms, remainingMs: ms, endsAt: null };
+    } else if (body.action === 'start') {
+      if (!timer.durationMs) return sendJson(res, 400, { error: 'Set a time first.' });
+      if (left === 0) return sendJson(res, 400, { error: "Time is up. Set a new time to start again." });
+      if (!timer.endsAt) timer = { ...timer, endsAt: Date.now() + left };
+    } else if (body.action === 'pause') {
+      if (timer.endsAt) timer = { ...timer, remainingMs: left, endsAt: null };
+    } else if (body.action === 'off') {
+      timer = { durationMs: 0, remainingMs: 0, endsAt: null };
+    } else {
+      return sendJson(res, 400, { error: 'Unknown timer action.' });
+    }
+    await saveTimer();
+    return sendJson(res, 200, timerStatus());
+  }
+
   // every clan's score, cleared missions and hints; reset one clan (testing)
-  if (pathname === '/api/admin/clans' && method === 'GET') return sendJson(res, 200, clans.overview(problems));
+  if (pathname === '/api/admin/clans' && method === 'GET') return sendJson(res, 200, { ...clans.overview(problems), members: students.membersByClan() });
   if (clanResetMatch && method === 'POST') {
     if (!clans.CLANS.some((c) => c.id === clanResetMatch[1])) return sendJson(res, 404, { error: 'No such clan.' });
     clans.reset(clanResetMatch[1]);
@@ -566,7 +750,7 @@ async function handle(req, res) {
     const now = new Date().toISOString();
     p = { id: 'p' + crypto.randomBytes(5).toString('hex'), ...p, createdAt: now, updatedAt: now };
     problems.push(p);
-    await saveProblems();
+    await saveProblem(p);
     return sendJson(res, 201, p);
   }
   if (problemMatch && method === 'PUT') {
@@ -577,14 +761,14 @@ async function handle(req, res) {
     catch (e) { return sendJson(res, 400, { error: e.message === 'too-large' ? 'Problem is too large.' : e.message }); }
     if (numberTaken(p, problems[i].id)) return sendJson(res, 409, { error: `${levelName(p.difficulty)} already has a problem number ${p.number}.` });
     problems[i] = { ...problems[i], ...p, updatedAt: new Date().toISOString() };
-    await saveProblems();
+    await saveProblem(problems[i]);
     return sendJson(res, 200, problems[i]);
   }
   if (problemMatch && method === 'DELETE') {
     const before = problems.length;
     problems = problems.filter((x) => x.id !== problemMatch[1]);
     if (problems.length === before) return sendJson(res, 404, { error: 'Problem not found.' });
-    await saveProblems();
+    await removeProblemFile(problemMatch[1]);
     for (const suite of SUITES) {
       fsp.rm(testsFile(problemMatch[1], suite), { force: true }).catch(() => {});
       testCounts.delete(`${problemMatch[1]}:${suite}`);
@@ -602,6 +786,16 @@ async function handle(req, res) {
     await fsp.writeFile(path.join(UPLOAD_DIR, name), buf);
     return sendJson(res, 201, { url: 'uploads/' + name });
   }
+  if (pathname === '/api/upload-video' && method === 'POST') {
+    let buf;
+    try { buf = await readBody(req, LIMITS.maxVideoBytes); }
+    catch { return sendJson(res, 413, { error: 'Video is too large (max 100 MB).' }); }
+    const type = videoType(buf);
+    if (!type) return sendJson(res, 400, { error: 'Only MP4 and WebM videos are allowed.' });
+    const name = crypto.randomBytes(16).toString('hex') + '.' + type;
+    await fsp.writeFile(path.join(UPLOAD_DIR, name), buf);
+    return sendJson(res, 201, { url: 'uploads/' + name });
+  }
 
   // ---- submit: judge against the hidden test cases ----
   // Everything about the hidden tests stays secret: only one symbol per test goes back, e.g. "PPF-T".
@@ -611,6 +805,8 @@ async function handle(req, res) {
   // Co-op: the team tests check the whole program; each player's own tests check only their part.
   // body.part = 'p1' or 'p2' runs just that player's tests ("Check my part").
   if (pathname === '/api/submit' && method === 'POST') {
+    if (!students.userOf(req)) return needLogin(res);
+    if (timeIsUp() && !isAdmin(req)) return sendJson(res, 403, { ok: false, stage: 'request', message: "Time's up! Submitting is closed. You can still read the problems and run your code." });
     let body;
     try { body = await readJson(req, LIMITS.maxCodeBytes * 2 + 4096); }
     catch (e) { return sendJson(res, e.message === 'too-large' ? 413 : 400, { ok: false, stage: 'request', message: e.message === 'too-large' ? 'Code is too large.' : 'Bad request.' }); }
@@ -675,7 +871,8 @@ async function handle(req, res) {
       const sets = [reply.total != null ? reply : null, ...Object.values(reply.parts || {})].filter(Boolean);
       const passed = sets.reduce((n, x) => n + x.passed, 0), total = sets.reduce((n, x) => n + x.total, 0);
       const accepted = sets.length > 0 && sets.every((x) => x.passed === x.total);
-      clans.recordSubmit(clan, problem.id, passed, total, accepted);
+      clans.recordSubmit(clan, problem.id, passed, total, accepted,
+        { ...(reply.total != null ? { team: { passed: reply.passed, total: reply.total } } : {}), ...(reply.parts || {}) });
       reply.cleared = accepted;
     }
     return sendJson(res, 200, reply);
@@ -708,14 +905,38 @@ async function handle(req, res) {
 
   if (method !== 'GET') { res.writeHead(405); return res.end(); }
 
-  const upload = pathname.match(/^\/uploads\/([a-f0-9]{32}\.(?:png|jpg|gif|webp))$/);
-  if (upload) return serveFile(res, path.join(UPLOAD_DIR, upload[1]));
+  const upload = pathname.match(/^\/uploads\/([a-f0-9]{32}\.(?:png|jpg|gif|webp|mp4|webm))$/);
+  if (upload) {
+    const file = path.join(UPLOAD_DIR, upload[1]);
+    return /\.(mp4|webm)$/.test(file) ? serveMedia(req, res, file) : serveFile(res, file);
+  }
 
-  return serveStatic(decodeURIComponent(pathname), res);
+  const loadingGif = pathname.match(/^\/loading-gif\/([^/]+)$/);
+  if (loadingGif) {
+    const name = decodeURIComponent(loadingGif[1]);
+    // a plain file name inside data/gif only (no slashes, so no way out of the folder)
+    if (!/^[^/\\]+\.gif$/i.test(name)) { res.writeHead(404); return res.end('Not found'); }
+    return serveFile(res, path.join(GIF_DIR, name), { 'Cache-Control': 'public, max-age=3600' });
+  }
+
+  // The map and the problem pages are for logged-in students only; the login page is for everyone else.
+  if (LOGIN_PAGES.has(pathname) && !students.userOf(req)) {
+    const next = pathname === '/' ? '' : `?next=${encodeURIComponent(pathname.slice(1) + url.search)}`;
+    res.writeHead(302, { Location: 'login.html' + next, 'Cache-Control': 'no-store' });
+    return res.end();
+  }
+  if (pathname === '/login.html' && students.userOf(req)) {
+    res.writeHead(302, { Location: './', 'Cache-Control': 'no-store' });
+    return res.end();
+  }
+  const noStore = LOGIN_PAGES.has(pathname) || pathname === '/login.html' ? { 'Cache-Control': 'no-store' } : undefined;
+  return serveStatic(decodeURIComponent(pathname), res, noStore);
 }
 
 loadProblems();
 clans.load(DATA_DIR);
+const studentCount = students.load(DATA_DIR, new Set(clans.CLANS.map((c) => c.id)));
+if (!studentCount) console.warn('No students in data/students.json: nobody can log in to the main page.');
 
 const server = http.createServer((req, res) => {
   handle(req, res).catch((err) => {

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in · C Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  /* One card in the middle; the six clan crests above it, the one you belong to lights up after login. */
+  body { display: grid; place-items: center; min-height: 100%; padding: 24px 16px; font-family: "Sarabun", var(--font-ui); }
+  .login { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 22px; }
+  .crests { display: flex; justify-content: center; gap: 8px; }
+  .crests img { width: 38px; height: 38px; padding: 6px; border-radius: 10px; background: var(--clan); opacity: .9;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); transition: transform .3s, opacity .3s, filter .3s; }
+  .crests.dim img { opacity: .25; filter: grayscale(1); }
+  .crests.dim img.mine { opacity: 1; filter: none; transform: translateY(-4px) scale(1.15); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 28px 24px 24px; display: flex; flex-direction: column; gap: 18px; }
+  .card h1 { margin: 0; font-size: 1.6rem; font-weight: 800; line-height: 1.2; }
+  .card .sub { margin: -10px 0 0; color: var(--muted); font-size: .95rem; }
+  form { display: flex; flex-direction: column; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-weight: 600; font-size: .9rem; }
+  .field small { color: var(--muted); font-size: .8rem; }
+  .field input { padding: 10px 12px; font-size: 1rem; border-radius: 10px; }
+  #username { font: 600 1.05rem var(--font-mono); letter-spacing: .04em; }
+  .pw { position: relative; display: flex; }
+  .pw input { flex: 1; padding-right: 64px; }
+  .pw button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 3px 9px; font-size: .78rem; border-radius: 7px; }
+  .pw button:active { transform: translateY(-50%) scale(.97); }
+  button.go { padding: 11px; font-size: 1rem; border-radius: 10px; }
+  .msg { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: .9rem; }
+  .msg.err { color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); }
+  .msg.info { color: var(--text); background: var(--accent-soft); }
+  .welcome { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 6px 0; }
+  .welcome b { font-size: 1.15rem; }
+  .welcome span { color: color-mix(in srgb, var(--clan, var(--accent)) 75%, var(--text)); font-weight: 700; }
+  .foot { text-align: center; font-size: .85rem; color: var(--muted); }
+  .foot a { color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="login">
+  <div class="crests" id="crests" aria-hidden="true"></div>
+  <div class="card">
+    <h1>Log in</h1>
+    <p class="sub">Log in to play for your clan.</p>
+    <p class="msg info" id="why" hidden></p>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" inputmode="numeric" autocapitalize="off" spellcheck="false" required>
+        <small>Your student number, e.g. 7</small>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw">
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button type="button" id="show" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <p class="msg err" id="err" role="alert" hidden></p>
+      <button type="submit" class="primary go" id="go">Log in</button>
+    </form>
+    <div class="welcome" id="welcome" hidden><small class="muted">Welcome</small><b id="w-name"></b><span id="w-clan"></span></div>
+  </div>
+  <p class="foot"><a href="guide.html">GCC guide</a> · <a href="admin.html">Admin</a></p>
+</main>
+
+<script src="js/clan.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+// only go back to one of our own pages (never another site)
+const nextRaw = params.get('next') || '';
+const NEXT = /^[\w.-]+\.html(\?[\w=&%.\-]*)?$/.test(nextRaw) ? nextRaw : './';
+
+if (params.get('why') === 'ended') {
+  $('why').hidden = false;
+  $('why').textContent = 'You were logged out. Your login ended, or someone logged in with your account on another computer.';
+}
+
+let clans = [];
+Clan.list().then((list) => {
+  clans = list;
+  for (const c of list) {
+    const img = document.createElement('img');
+    img.src = Clan.logo(c.id); img.alt = ''; img.dataset.clan = c.id; img.title = c.name;
+    img.style.setProperty('--clan', c.color);
+    $('crests').appendChild(img);
+  }
+});
+
+$('show').addEventListener('click', () => {
+  const on = $('password').type === 'password';
+  $('password').type = on ? 'text' : 'password';
+  $('show').textContent = on ? 'Hide' : 'Show';
+  $('show').setAttribute('aria-pressed', String(on));
+  $('password').focus();
+});
+
+function fail(text, field) {
+  $('err').textContent = text;
+  $('err').hidden = false;
+  if (field) { $(field).focus(); $(field).select(); }
+}
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = $('username').value.trim(), password = $('password').value;
+  if (!username) return fail('Type your username (your student number).', 'username');
+  if (!password) return fail('Type your password.', 'password');
+  $('err').hidden = true;
+  $('go').disabled = true;
+  $('go').textContent = 'Logging in…';
+  try {
+    const r = await fetch('api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(j.error || 'Could not log in.'), { status: r.status });
+    Clan.remember(j.user);
+    // a short welcome with their name and clan, then on to the map
+    const c = clans.find((x) => x.id === j.user.clan);
+    $('form').hidden = true; $('why').hidden = true;
+    $('welcome').hidden = false;
+    $('w-name').textContent = j.user.name;
+    if (c) {
+      $('welcome').style.setProperty('--clan', c.color);
+      $('w-clan').textContent = `${c.thai} · ${c.name}`;
+      $('crests').classList.add('dim');
+      const mine = $('crests').querySelector(`[data-clan="${c.id}"]`);
+      if (mine) mine.classList.add('mine');
+    }
+    setTimeout(() => location.replace(NEXT), 900);
+  } catch (err) {
+    $('go').disabled = false;
+    $('go').textContent = 'Log in';
+    if (err.status === 401) { $('password').value = ''; fail(err.message, 'password'); }
+    else fail(err.status ? err.message : 'Could not reach the server. Is it running?');
+  }
+});
+$('username').focus();
+</script>
+</body>
+</html>

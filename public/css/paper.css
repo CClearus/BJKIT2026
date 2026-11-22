@@ -38,21 +38,40 @@
   border: 1px solid var(--paper-rule); border-radius: 4px; padding: 10px 12px; overflow-x: auto; white-space: pre;
 }
 .paper pre code { border: 0; padding: 0; background: none; font-size: 1em; }
+/* long lines scroll sideways: a thin scrollbar in the paper's colors instead of the browser's white one */
+.paper pre { scrollbar-width: thin; scrollbar-color: var(--paper-muted) transparent; }
+.paper pre::-webkit-scrollbar { height: 8px; }
+.paper pre::-webkit-scrollbar-track { background: transparent; }
+.paper pre::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--paper-muted) 55%, transparent); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+.paper pre::-webkit-scrollbar-thumb:hover { background-color: var(--paper-muted); }
+.paper pre::-webkit-scrollbar-button { display: none; }
 .paper img { max-width: 100%; height: auto; border-radius: 3px; }
 .paper table:not(.samples) { border-collapse: collapse; margin: .6em 0; }
 .paper table:not(.samples) td, .paper table:not(.samples) th { border: 1px solid var(--paper-rule); padding: 4px 10px; }
+.paper table:not(.samples) th { background: var(--sample-bg); font-weight: 600; text-align: left; }
+
+/* video from the editor's ▶ Video button: starts on its own at half volume, and loops */
+.paper .p-video { margin: .9em 0; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; overflow: hidden; }
+.paper .p-video iframe, .paper .p-video video { display: block; width: 100%; height: 100%; border: 0; object-fit: contain; }
 .paper .katex { font-size: 1.05em; }
 .paper .empty-note { color: var(--paper-muted); font-style: italic; }
 
 /* sample tests, like the boxed examples on a test paper */
-.paper table.samples { width: 100%; border-collapse: collapse; margin: .6em 0 1em; table-layout: fixed; }
+/* laid out as a 2-column grid (not a real table) so Input and Output in a row are always the same height,
+   and each box fills its cell: a sideways scrollbar then sits at the bottom edge of the box */
+.paper table.samples {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: 100%; margin: .6em 0 1em; border: 1px solid var(--paper-rule);
+}
+.paper table.samples tbody, .paper table.samples tr { display: contents; }
 .paper table.samples th {
   font: 600 .9em/1.2 var(--font-paper); text-align: left; letter-spacing: .02em;
-  padding: 7px 10px; border: 1px solid var(--paper-rule); background: var(--sample-bg); color: var(--paper-muted);
+  padding: 7px 10px; border-bottom: 1px solid var(--paper-rule); background: var(--sample-bg); color: var(--paper-muted);
 }
 .paper table.samples th .s-actions { float: right; display: flex; gap: 4px; }
-.paper table.samples td { border: 1px solid var(--paper-rule); vertical-align: top; padding: 0; }
-.paper table.samples pre { margin: 0; border: 0; border-radius: 0; background: transparent; min-height: 2.4em; }
+.paper table.samples td { min-width: 0; padding: 0; display: flex; flex-direction: column; }
+.paper table.samples th + th, .paper table.samples td + td { border-left: 1px solid var(--paper-rule); }
+.paper table.samples pre { flex: 1 0 auto; margin: 0; border: 0; border-radius: 0; background: transparent; min-height: 2.4em; overflow-y: hidden; }
 .paper .s-btn {
   font: 500 .95em/1 var(--font-ui); padding: 3px 7px; border-radius: 5px; margin-top: -3px;
   border: 1px solid var(--paper-rule); background: var(--paper); color: var(--paper-muted); cursor: pointer;
@@ -154,9 +173,18 @@
   display: flex; flex-direction: column; gap: 2px; font-size: .88em;
 }
 .paper .c-key { font: 600 .76em/1.4 var(--font-paper); letter-spacing: .1em; text-transform: uppercase; color: var(--paper-muted); }
-.paper .c-names { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 0; font-weight: 600; color: var(--paper-strong); }
-.paper .c-names li { margin: 0; overflow-wrap: anywhere; }
-.paper .c-names li + li::before { content: "·"; margin: 0 .55em; color: var(--paper-muted); font-weight: 400; }
+.paper .c-names { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-weight: 600; color: var(--paper-strong); }
+.paper .c-names li { margin: 0; display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.paper .c-name { overflow-wrap: anywhere; }
+/* round profile picture beside each name; the first letter when there is no picture */
+.paper .c-av {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+  background: var(--sample-bg); box-shadow: 0 0 0 1px var(--paper-rule);
+}
+.paper .c-av.initial {
+  display: inline-grid; place-items: center;
+  font: 600 13px/1 var(--font-ui); color: var(--paper-muted);
+}
 .paper .c-val.placeholder { color: var(--paper-muted); opacity: .7; }
 
 .paper .p-title, .paper h2, .paper b, .paper strong { color: var(--paper-strong); }

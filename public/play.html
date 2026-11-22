@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <link rel="stylesheet" href="css/theme.css">
+<script src="js/loader.js"></script>
 <link rel="stylesheet" href="css/paper.css">
 <link rel="stylesheet" href="css/editor.css">
 <style>
@@ -226,6 +227,7 @@
   <span class="status" id="status">Checking compiler…</span>
   <a class="btn" href="guide.html">GCC guide</a>
   <span class="hint-count" id="hint-count" title="Hints left: use one to reveal a problem's hint"></span>
+  <span id="account"></span>
   <a class="btn" href="admin.html">⚙ Admin</a>
 </header>
 
@@ -444,8 +446,10 @@ function loadCode() {
 /* ---------- clan: the code is shared live with everyone in the clan ---------- */
 // Each box (Player 1, Player 2, or the solo box) syncs on its own, so a pair can work from two computers.
 // Last save wins. Edits are sent 0.5 s after typing stops; clanmates' edits are picked up every 2 s.
+Clan.requireLogin();
+Clan.mountAccount($('account'));
 const CLAN = Clan.id();
-let clanState = null;   // { score, solved, progress, hintsLeft, revealed, ... } from the server
+let clanState = null;  // { score, solved, progress, hintsLeft, revealed, ... } from the server
 const slotName = (slot) => (isCoop() ? `p${slot}` : 'c');
 const edFor = (slot) => (slot === 1 ? editor : editor2);
 let sync = { pid: null, v: {}, pending: {}, timers: {} };
@@ -818,6 +822,15 @@ function recordProgress(r) {
   if (!best || !best.total || passed / total >= best.passed / best.total) {
     store.set('progress:' + problem.id, JSON.stringify({ passed, total }));
   }
+  // each test set's best too, for the map's [T][1][2] boxes (playing for a clan, the server keeps these)
+  let suites = {};
+  try { suites = JSON.parse(store.get('suites:' + problem.id)) || {}; } catch {}
+  const sets = { ...(r.total != null ? { team: { passed: r.passed, total: r.total } } : {}), ...(r.parts || {}) };
+  for (const [s, x] of Object.entries(sets)) {
+    const old = suites[s];
+    if (x.total > 0 && (!old || !old.total || x.passed / x.total >= old.passed / old.total)) suites[s] = { passed: x.passed, total: x.total };
+  }
+  store.set('suites:' + problem.id, JSON.stringify(suites));
 }
 async function submit() {
   if (busy || !problem || !totalTests()) return;

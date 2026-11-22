@@ -6,6 +6,8 @@
     CODE: [], PRE: [], H3: [], H4: [], UL: [], OL: [], LI: [], BLOCKQUOTE: [], SPAN: [], HR: [],
     TABLE: [], THEAD: [], TBODY: [], TR: [], TD: ['colspan', 'rowspan'], TH: ['colspan', 'rowspan'],
     IMG: ['src', 'alt'], A: ['href'],
+    // a video is stored as <figure data-video="link"></figure> and turned into a player when shown
+    FIGURE: ['data-video'],
   };
   const DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'LINK', 'META', 'TEMPLATE', 'SVG', 'MATH', 'FORM', 'INPUT', 'TEXTAREA', 'BUTTON', 'SELECT']);
   const STYLE_OK = new Set(['text-align', 'width', 'display', 'margin-left', 'margin-right']);
@@ -39,6 +41,14 @@
         if (!ALLOWED[tag].includes(attr.name.toLowerCase())) child.removeAttribute(attr.name);
       }
       if (style) child.setAttribute('style', style);
+      if (tag === 'FIGURE') {
+        // only a known video link survives; the figure keeps nothing else inside it
+        const v = parseVideo(child.getAttribute('data-video'));
+        if (!v) { cleanNode(child); child.replaceWith(...child.childNodes); continue; }
+        child.setAttribute('data-video', v.url);
+        child.textContent = '';
+        continue;
+      }
       if (tag === 'IMG' && !IMG_SRC.test(child.getAttribute('src') || '')) { child.remove(); continue; }
       if (tag === 'A') {
         if (!/^https?:\/\//i.test(child.getAttribute('href') || '')) child.removeAttribute('href');
@@ -57,7 +67,66 @@
 
   function isBlank(html) {
     const doc = new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html');
-    return !doc.body.textContent.trim() && !doc.body.querySelector('img');
+    return !doc.body.textContent.trim() && !doc.body.querySelector('img, figure[data-video]');
+  }
+
+  // ---------- videos ----------
+  // An MP4/WebM video: one uploaded to this site (uploads/<id>.mp4), or a direct link to a video file.
+  // Returns { src, url } with url = what gets stored, or null.
+  const VIDEO_UPLOAD = /^\/?uploads\/[a-f0-9]{32}\.(?:mp4|webm)$/;
+  function parseVideo(link) {
+    const s = String(link || '').trim();
+    if (VIDEO_UPLOAD.test(s)) { const url = s.replace(/^\//, ''); return { src: url, url }; }
+    let u;
+    try { u = new URL(s); } catch { return null; }
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    return /\.(mp4|webm|m4v|ogv|mov)$/i.test(u.pathname) ? { src: u.href, url: u.href } : null;
+  }
+
+  // Turn every stored <figure data-video> inside root into a video that plays on its own, looping,
+  // with the sound on at half volume.
+  // Browsers block sound until the viewer has clicked or pressed a key on the page. If that happens
+  // the video plays muted for now and the sound comes on with the viewer's first click or key press.
+  const VIDEO_VOLUME = 0.5;
+  const waitingForSound = new Set();
+  const UNMUTE_EVENTS = ['pointerdown', 'keydown', 'touchend'];
+  function unmuteWaiting(e) {
+    for (const m of waitingForSound) {
+      // a click on the video itself is left to its own controls (e.g. its mute button)
+      if (m !== e.target && m.isConnected) { m.volume = VIDEO_VOLUME; m.muted = false; }
+    }
+    waitingForSound.clear();
+    for (const t of UNMUTE_EVENTS) document.removeEventListener(t, unmuteWaiting, true);
+  }
+  function playWithSound(media) {
+    media.volume = VIDEO_VOLUME;
+    media.muted = false;
+    const started = media.play();
+    if (!started) return;
+    started.catch(() => {
+      media.muted = true;
+      media.play().catch(() => {});
+      if (!waitingForSound.size) for (const t of UNMUTE_EVENTS) document.addEventListener(t, unmuteWaiting, true);
+      waitingForSound.add(media);
+    });
+  }
+  function mountVideos(root) {
+    for (const fig of root.querySelectorAll('figure[data-video]')) {
+      const v = parseVideo(fig.getAttribute('data-video'));
+      if (!v) { fig.remove(); continue; }
+      fig.className = 'p-video';
+      fig.textContent = '';
+      const media = document.createElement('video');
+      Object.assign(media, { loop: true, playsInline: true, controls: true, preload: 'auto', src: v.src });
+      fig.appendChild(media);
+      playWithSound(media);
+    }
+  }
+
+  // put sanitized rich text into an element, with working video players
+  function setRich(target, html) {
+    target.innerHTML = sanitize(html);
+    mountVideos(target);
   }
 
   const el = (tag, cls, text) => {
@@ -68,25 +137,27 @@
   };
 
   // ---------- difficulty levels ----------
-  // 1-5 stars (green -> red), 6 stars (purple), and a special level with its own symbol.
+  // 0 stars (example missions: no points, just to learn how it works), 1-5 stars (green -> red),
+  // 6 stars (purple), and a special level with its own symbol.
   const SPECIAL_SYMBOL = '◆';
-  const LEVELS = ['1', '2', '3', '4', '5', '6', 'special'];
+  const LEVELS = ['0', '1', '2', '3', '4', '5', '6', 'special'];
 
   function normalizeLevel(d) {
     const s = String(d ?? '').toLowerCase();
     if (LEVELS.includes(s)) return s;
     return { easy: '1', medium: '3', hard: '5' }[s] || '1';
   }
-  const levelName = (l) => (normalizeLevel(l) === 'special' ? 'Special' : `Level ${normalizeLevel(l)}`);
+  const levelName = (l) => (normalizeLevel(l) === 'special' ? 'Special' : normalizeLevel(l) === '0' ? 'Example (no points)' : `Level ${normalizeLevel(l)}`);
   const levelOrder = (l) => (normalizeLevel(l) === 'special' ? 7 : Number(normalizeLevel(l)));
   // plain-text stars, for places that can't be colored (like <option>)
   function starsText(l) {
     const v = normalizeLevel(l);
     if (v === 'special') return `${SPECIAL_SYMBOL} Special`;
+    if (v === '0') return '☆ Example';
     const n = Number(v);
     return n === 6 ? '★★★★★★' : '★'.repeat(n) + '☆'.repeat(5 - n);
   }
-  // Colored stars. Only the special level shows a word next to its symbol.
+  // Colored stars. Only the special and example levels show a word next to their symbol.
   function levelElement(l, { specialLabel = 'Special' } = {}) {
     const v = normalizeLevel(l);
     const wrap = el('span', `level lv-${v}`);
@@ -94,6 +165,7 @@
     const stars = el('span', 'stars');
     stars.setAttribute('aria-hidden', 'true');
     if (v === 'special') stars.textContent = SPECIAL_SYMBOL;
+    else if (v === '0') stars.textContent = '☆';
     else {
       const n = Number(v);
       stars.textContent = '★'.repeat(n);
@@ -101,6 +173,7 @@
     }
     wrap.appendChild(stars);
     if (v === 'special') wrap.appendChild(el('span', 'lv-name', specialLabel));
+    else if (v === '0') wrap.appendChild(el('span', 'lv-name', 'Example'));
     else wrap.appendChild(el('span', 'sr-only', levelName(v)));
     return wrap;
   }
@@ -115,15 +188,31 @@
     input: 'Input', output: 'Output', constraints: 'Constraints', example: 'Example', examples: 'Examples',
     copy: 'Copy', copied: 'Copied', use: 'Use ↗', madeBy: 'Made by', special: 'Special',
   };
-  // "Made by" is a list of names (older problems stored a single name)
-  const authorList = (v) => (Array.isArray(v) ? v : [v]).map((x) => String(x ?? '').trim()).filter(Boolean);
+  // "Made by": a list of { name, avatar }. Older problems stored plain names (or one name).
+  const authorList = (v) => (Array.isArray(v) ? v : [v]).map((x) => {
+    const o = x && typeof x === 'object' ? x : { name: x };
+    return { name: String(o.name ?? '').trim(), avatar: String(o.avatar || '') };
+  }).filter((a) => a.name);
+  // a round picture, or the first letter of the name when there is no picture
+  function avatarEl(a, cls) {
+    if (/^uploads\/[a-f0-9]{32}\.(?:png|jpg|gif|webp)$/.test(a.avatar)) {
+      const img = el('img', cls);
+      img.src = a.avatar;
+      img.alt = '';
+      img.loading = 'lazy';
+      return img;
+    }
+    const span = el('span', cls + ' initial', [...a.name][0].toUpperCase());
+    span.setAttribute('aria-hidden', 'true');
+    return span;
+  }
 
   // ---------- rendering ----------
   function section(paper, title, html) {
     if (isBlank(html)) return;
     paper.appendChild(el('h2', null, title));
     const body = el('div', 'p-section');
-    body.innerHTML = sanitize(html);
+    setRich(body, html);
     paper.appendChild(body);
   }
 
@@ -183,7 +272,7 @@
   function renderGlobal(root, p, options) {
     if (!isBlank(p.statement)) {
       const st = el('div', 'p-section');
-      st.innerHTML = sanitize(p.statement);
+      setRich(st, p.statement);
       root.appendChild(st);
     }
     section(root, L.input, p.input);
@@ -268,7 +357,11 @@
     credits.appendChild(el('span', 'c-key', L.madeBy));
     if (authors.length) {
       const names = el('ul', 'c-names');
-      for (const a of authors) names.appendChild(el('li', null, a));
+      for (const a of authors) {
+        const li = el('li');
+        li.append(avatarEl(a, 'c-av'), el('span', 'c-name', a.name));
+        names.appendChild(li);
+      }
       credits.appendChild(names);
     } else credits.appendChild(el('span', 'c-val placeholder', '—'));
     paper.appendChild(credits);
@@ -297,7 +390,7 @@
     head.append(el('span', null, HINT_WHO[scope] ? `${HINT_WHO[scope]} hint` : 'Hint'));
     if (note) head.appendChild(el('span', 'h-note', note));
     const body = el('div', 'p-section h-body');
-    body.innerHTML = sanitize(html);
+    setRich(body, html);
     box.append(head, body);
     return box;
   }
@@ -403,11 +496,21 @@
     const ATOMS = 'span.tw, span.tws, .katex, code, img';
     const observed = new WeakSet();
 
+    // Text the author aligned left / center / right (toolbar buttons) keeps that alignment;
+    // only unaligned or justified text gets Thai Distributed spacing.
+    function alignedByAuthor(b) {
+      for (let n = b; n && !n.classList?.contains('p-section'); n = n.parentElement) {
+        const a = n.style && n.style.textAlign;
+        if (a) return a !== 'justify';
+      }
+      return false;
+    }
+
     function leafBlocks(root) {
       const out = [];
       for (const sec of root.querySelectorAll('.p-section')) {
         for (const b of [sec, ...sec.querySelectorAll(BLOCKS)]) {
-          if (b.closest(SKIP) || b.querySelector(BLOCKS) || b.classList.contains('thai-dist')) continue;
+          if (b.closest(SKIP) || b.querySelector(BLOCKS) || b.classList.contains('thai-dist') || alignedByAuthor(b)) continue;
           if (THAI.test(b.textContent)) out.push(b);
         }
       }
@@ -568,7 +671,7 @@
   })();
 
   window.ProblemView = {
-    renderProblem, sanitize, isBlank, authorList, revealHint,
+    renderProblem, sanitize, isBlank, authorList, revealHint, parseVideo,
     LEVELS, normalizeLevel, levelName, levelOrder, starsText, levelElement, renderMath,
     relayout: (root) => ThaiDistribute.layoutAll(root),
   };

@@ -190,9 +190,6 @@
   .cm-head h2 { margin: 0; font-size: 1.15rem; }
   .cm-head .spacer { flex: 1; }
   .cm-sub { margin: 4px 0 14px; color: var(--muted); font-size: .84rem; }
-  .playing-as { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: .86rem; }
-  .playing-as img { width: 24px; height: 24px; padding: 3px; border-radius: 6px; background: var(--clan); }
-  .playing-as .spacer { flex: 1; }
   .clan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
   .clan-card { --clan: var(--accent); overflow: hidden; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); transition: box-shadow .2s, transform .2s; }
   .clan-card.active { box-shadow: 0 0 0 2px var(--clan), 0 10px 30px color-mix(in srgb, var(--clan) 25%, transparent); }
@@ -209,8 +206,29 @@
   .cc-stats b { display: block; font: 700 1.15rem var(--font-mono); }
   .cc-stats b.score { color: color-mix(in srgb, var(--clan) 70%, var(--text)); }
   .cc-stats span { font-size: .7rem; color: var(--muted); }
-  .cc-actions { display: flex; gap: 6px; padding: 10px 16px 14px; }
-  .cc-actions .play { flex: 1; }
+  .cc-actions { display: flex; align-items: center; gap: 6px; padding: 10px 16px 14px; }
+  .cc-actions .spacer { flex: 1; }
+  .cc-members { padding: 4px 16px 0; font-size: .84rem; }
+  .cc-members summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+  .cc-members ol { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+  .cc-members li { display: flex; gap: 8px; }
+  .cc-members .un { font: 600 .78rem var(--font-mono); color: var(--muted); min-width: 2.2em; text-align: right; }
+  /* camp timer */
+  .timer-modal { width: min(460px, 100%); }
+  .tm-readout { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0 20px; margin-bottom: 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+  .tm-readout small { font: 700 .66rem var(--font-ui); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
+  .tm-readout b { font: 700 2.6rem/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+  .tm-readout.ended b, .tm-readout.ended small { color: var(--err); }
+  .tm-readout.paused b, .tm-readout.ready b, .tm-readout.off b { opacity: .55; }
+  .tm-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }
+  .tm-row > button:not(.danger) { flex: 1; }
+  .tm-set { padding-top: 12px; border-top: 1px dashed var(--border); }
+  .tm-set label { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; font-weight: 600; color: var(--muted); }
+  .tm-inputs { display: flex; align-items: center; gap: 6px; color: var(--text); font-weight: 400; }
+  .tm-inputs input { width: 4.2em; }
+  .tm-note { margin: 0; font-size: .78rem; color: var(--muted); }
+  #timer-btn-left { font-family: var(--font-mono); font-size: .82em; color: var(--muted); }
+  #timer-btn-left.ended { color: var(--err); }
   .scoring { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; }
   .scoring b { color: var(--text); font-family: var(--font-mono); }
   @media (max-width: 560px) {
@@ -255,7 +273,24 @@
   @media (max-width: 560px) { .math-group { flex-direction: column; gap: 2px; } .mg-label { padding-top: 0; } }
   .fields.second { grid-template-columns: 1fr 1fr; margin-top: 12px; }
   .authors { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-  .author-row { display: flex; gap: 6px; animation: popIn .2s ease-out; }
+  .author-row { display: flex; align-items: center; gap: 6px; animation: popIn .2s ease-out; }
+  /* round profile picture: click (or drop an image) to set it, ✕ on hover to remove it */
+  .author-av { position: relative; flex: none; width: 36px; height: 36px; }
+  .author-row .author-av .av-pick {
+    width: 100%; height: 100%; padding: 0; border-radius: 50%; overflow: hidden;
+    display: grid; place-items: center; border: 1px dashed var(--border);
+    background: var(--surface-2); color: var(--muted); font: 600 .85rem/1 var(--font-ui);
+  }
+  .author-row .author-av .av-pick:hover, .author-av.drop .av-pick { border-color: var(--accent); color: var(--accent); }
+  .author-av.has .av-pick { border-style: solid; }
+  .author-av .av-pick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .author-av .av-pick svg { width: 16px; height: 16px; }
+  .author-av.busy .av-pick { opacity: .5; cursor: progress; }
+  .author-row .author-av .av-remove {
+    position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; padding: 0; border-radius: 50%;
+    display: none; place-items: center; font-size: 10px; line-height: 1; background: var(--surface);
+  }
+  .author-av.has:hover .av-remove, .author-av.has:focus-within .av-remove { display: grid; }
   .author-row input { flex: 1; min-width: 0; }
   .author-row button { padding: 6px 10px; }
   label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--muted); }
@@ -290,6 +325,52 @@
   .rich-body img { max-width: 100%; height: auto; cursor: pointer; border-radius: 3px; transition: outline-color .15s; outline: 2px solid transparent; outline-offset: 2px; }
   .rich-body img:hover { outline-color: var(--accent-soft); }
   .rich-body img.selected { outline-color: var(--accent); }
+
+  /* tables in the editor */
+  .rich-body table { border-collapse: collapse; margin: .6em 0; }
+  .rich-body td, .rich-body th { border: 1px solid var(--border); padding: 4px 10px; min-width: 48px; vertical-align: top; }
+  .rich-body th { background: var(--surface-2); font-weight: 600; text-align: left; }
+  .rich-body td:focus-within, .rich-body th:focus-within { outline: none; }
+  .rich-body .cell-active { box-shadow: inset 0 0 0 2px var(--accent-soft); }
+
+  /* video card in the editor (the real player appears in the preview and on the site) */
+  .rich-body figure[data-video] {
+    position: relative; margin: .6em 0; padding: 8px 40px 8px 8px; min-height: 64px;
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2);
+    color: var(--muted); font: .82rem/1.45 var(--font-ui); user-select: none; cursor: default;
+  }
+  .rich-body figure[data-video] .vid-thumb { flex: none; width: 112px; height: 63px; border-radius: 6px; background: #000; object-fit: cover; }
+  .rich-body figure[data-video]::after { content: "Video · plays on its own, muted, and loops"; }
+  .rich-body figure[data-video] .vid-x {
+    position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; padding: 0; border-radius: 6px;
+    display: grid; place-items: center; font-size: .75rem; color: var(--err); background: transparent; border-color: transparent;
+  }
+  .rich-body figure[data-video] .vid-x:hover { background: var(--surface); border-color: var(--border); }
+
+  /* table size picker, video link box and table tools: panels under the toolbar, like the math palette */
+  .table-picker, .video-pop, .table-tools { border-bottom: 1px solid var(--border); background: var(--surface); animation: paletteIn .18s ease-out; }
+  .table-picker { padding: 10px; display: flex; align-items: center; gap: 14px; }
+  .tp-grid { display: grid; grid-template-columns: repeat(8, 18px); gap: 3px; }
+  .tp-grid button { width: 18px; height: 18px; padding: 0; border-radius: 3px; border: 1px solid var(--border); background: var(--surface-2); }
+  .tp-grid button.on { background: var(--accent-soft); border-color: var(--accent); }
+  .tp-size { font: 500 .85rem var(--font-mono); color: var(--muted); min-width: 90px; }
+  .video-pop { padding: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .video-pop .vp-link { flex: 1 1 260px; min-width: 0; }
+  .video-pop .vp-msg { flex-basis: 100%; margin: 0; font-size: .78rem; color: var(--muted); }
+  .video-pop .vp-msg.err { color: var(--err); }
+  .video-pop .vp-or { font-size: .8rem; color: var(--muted); }
+  .video-pop .vp-bar { flex-basis: 100%; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+  .video-pop .vp-bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .15s linear; }
+  .video-pop.busy button, .video-pop.busy input { pointer-events: none; opacity: .55; }
+  .rich-toolbar .align-btn { display: inline-grid; place-items: center; }
+  .rich-toolbar .align-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+  .table-tools button.on { background: var(--accent-soft); color: var(--accent); }
+  .table-tools { padding: 4px 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; animation: none; }
+  .table-tools .tt-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 0 6px; }
+  .table-tools button { border: 1px solid transparent; background: transparent; padding: 3px 8px; font-size: .8rem; border-radius: 6px; }
+  .table-tools button:hover { background: var(--accent-soft); }
+  .table-tools .sep { width: 1px; align-self: stretch; background: var(--border); margin: 3px 4px; }
   .rich.drag-over { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
   /* image resize overlay */
@@ -357,6 +438,7 @@
   @media (max-width: 560px) {
     .fields, .fields.second, .sample .s-grid { grid-template-columns: 1fr; }
   }
+
 </style>
 </head>
 <body>
@@ -368,6 +450,9 @@
     <button id="new-btn">＋ New problem</button>
   </span>
   <span class="spacer"></span>
+  <a class="btn" href="playground.html" target="_blank" rel="noopener" title="A free C editor and compiler for trying code yourself (opens in a new tab)">&lt;/&gt; Code playground ↗</a>
+  <a class="btn" href="how-it-works.html" target="_blank" rel="noopener" title="How co-op problems are built and judged, and how to teach it (opens in a new tab)">? How it works ↗</a>
+  <button id="timer-btn" title="The countdown on the map. When it reaches 0, students can no longer Submit">&#9201; Timer <span id="timer-btn-left"></span></button>
   <button id="clans-btn" title="Every clan's score and progress; play as a clan to test">&#127984; Clans</button>
   <a class="btn" href="./" id="view-site">View site ↗</a>
   <button id="reset-progress" title="Clear solved marks, hints and saved code in this browser (for testing)">↺ Reset my progress</button>
@@ -634,7 +719,37 @@
 <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
 <div class="toast" id="toast"></div>
 
-<!-- clans: every clan's score and progress; "Play as" makes this browser play for a clan (for testing) -->
+<!-- camp timer: the countdown in the middle of the map's top bar -->
+<div class="clans-back" id="timer-back" hidden>
+  <div class="clans-modal timer-modal" role="dialog" aria-modal="true" aria-labelledby="timer-title">
+    <div class="cm-head">
+      <h2 id="timer-title">Camp timer</h2>
+      <span class="spacer"></span>
+      <button type="button" class="icon-btn" id="timer-close" aria-label="Close">✕</button>
+    </div>
+    <p class="cm-sub">Shown big in the middle of the map's top bar. When it reaches 0, students can no longer Submit (scores freeze). They can still read the problems and Run their code.</p>
+    <div class="tm-readout"><small id="tm-status">No timer</small><b id="tm-left">--:--</b></div>
+    <div class="tm-row">
+      <button type="button" class="primary" id="tm-start">▶ Start</button>
+      <button type="button" id="tm-pause">❚❚ Pause</button>
+    </div>
+    <form class="tm-row tm-set" id="tm-set">
+      <label>New time
+        <span class="tm-inputs">
+          <input type="number" id="tm-h" min="0" max="168" step="1" value="2" aria-label="Hours"> h
+          <input type="number" id="tm-m" min="0" max="59" step="1" value="0" aria-label="Minutes"> min
+          <input type="number" id="tm-s" min="0" max="59" step="1" value="0" aria-label="Seconds"> sec
+        </span>
+      </label>
+      <button type="submit">Set</button>
+      <span class="spacer"></span>
+      <button type="button" class="danger" id="tm-off" title="Remove the timer: nothing is locked">Turn off</button>
+    </form>
+    <p class="tm-note">Set puts the timer back to the new time, paused. Press Start when the camp begins.</p>
+  </div>
+</div>
+
+<!-- clans: every clan's score, progress and students -->
 <div class="clans-back" id="clans-back" hidden>
   <div class="clans-modal" role="dialog" aria-modal="true" aria-labelledby="clans-title">
     <div class="cm-head">
@@ -643,8 +758,7 @@
       <a class="btn" href="./" target="_blank">Open the map ↗</a>
       <button type="button" class="icon-btn" id="clans-close" aria-label="Close">✕</button>
     </div>
-    <p class="cm-sub">Progress, score, hints and code are shared by everyone in a clan. Players will be put in their clan by the roster later; for now use <b>Play as</b> to test a clan in this browser.</p>
-    <div class="playing-as" id="playing-as"></div>
+    <p class="cm-sub">Progress, score, hints and code are shared by everyone in a clan. Students are put in their clan by the student list (<code>data/students.json</code>). To test a clan, open the map and log in as one of its students.</p>
     <div class="clan-grid" id="clan-grid"></div>
     <div class="scoring" id="scoring"></div>
   </div>
@@ -660,6 +774,11 @@
     <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
     <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
     <span class="sep"></span>
+    <button type="button" class="align-btn" data-cmd="justifyLeft" title="Align left (Ctrl+L)" aria-label="Align left"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M2 6.5h8M2 9.5h12M2 12.5h8"/></svg></button>
+    <button type="button" class="align-btn" data-cmd="justifyCenter" title="Center (Ctrl+E)" aria-label="Center"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M4 6.5h8M2 9.5h12M4 12.5h8"/></svg></button>
+    <button type="button" class="align-btn" data-cmd="justifyRight" title="Align right (Ctrl+R)" aria-label="Align right"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M6 6.5h8M2 9.5h12M6 12.5h8"/></svg></button>
+    <button type="button" class="align-btn" data-cmd="justifyFull" title="Justify (Ctrl+J)" aria-label="Justify"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M2 6.5h12M2 9.5h12M2 12.5h12"/></svg></button>
+    <span class="sep"></span>
     <button type="button" data-cmd="code" title="Inline code">&lt;/&gt;</button>
     <button type="button" data-cmd="pre" title="Code block">{ }</button>
     <button type="button" data-cmd="math" title="Show math symbols">∑ Math</button>
@@ -667,9 +786,40 @@
     <button type="button" data-cmd="subscript" title="Subscript">x₂</button>
     <span class="sep"></span>
     <button type="button" data-cmd="image" title="Insert picture">🖼 Picture</button>
+    <button type="button" data-cmd="table" title="Insert a table">▦ Table</button>
+    <button type="button" data-cmd="video" title="Add an MP4 video (plays on its own, muted)">▶ Video</button>
     <button type="button" data-cmd="removeFormat" title="Clear formatting">⌫ Clear</button>
   </div>
   <div class="math-palette" hidden></div>
+  <div class="table-picker" hidden>
+    <div class="tp-grid"></div>
+    <div class="tp-size">Pick a size</div>
+  </div>
+  <form class="video-pop" hidden>
+    <button type="button" class="primary vp-file">Choose video file…</button>
+    <span class="vp-or">or</span>
+    <input type="url" class="vp-link" placeholder="Paste a link to an .mp4 file" aria-label="Link to an MP4 file">
+    <button type="submit">Add link</button>
+    <button type="button" class="vp-cancel">Cancel</button>
+    <div class="vp-bar" hidden><span></span></div>
+    <p class="vp-msg">MP4 or WebM, up to 100 MB. You can also drop a video file into the text. It plays on its own, muted, and loops.</p>
+  </form>
+  <div class="table-tools" hidden>
+    <span class="tt-label">Table</span>
+    <button type="button" class="tt-align" data-t="align-left" title="Table on the left">⇤ Left</button>
+    <button type="button" class="tt-align" data-t="align-center" title="Table in the center">↔ Center</button>
+    <button type="button" class="tt-align" data-t="align-right" title="Table on the right">Right ⇥</button>
+    <button type="button" class="tt-align" data-t="full-width" title="Stretch the table across the page">Full width</button>
+    <span class="sep"></span>
+    <button type="button" data-t="row-above">＋ Row above</button>
+    <button type="button" data-t="row-below">＋ Row below</button>
+    <button type="button" data-t="col-left">＋ Column left</button>
+    <button type="button" data-t="col-right">＋ Column right</button>
+    <span class="sep"></span>
+    <button type="button" data-t="del-row">− Row</button>
+    <button type="button" data-t="del-col">− Column</button>
+    <button type="button" class="danger" data-t="del-table">Delete table</button>
+  </div>
   <div class="rich-body" contenteditable="true" spellcheck="true"></div>
 </template>
 
@@ -761,13 +911,33 @@ for (const box of document.querySelectorAll('.rich')) {
 
   const toolbar = box.querySelector('.rich-toolbar');
   const palette = box.querySelector('.math-palette');
+  palette.dataset.panel = 'math';
   toolbar.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
   toolbar.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
-    if (b.dataset.cmd === 'math') { toggleMathPalette(palette, b, body); return; }
+    if (b.dataset.cmd === 'math') { closePanels(box, palette); toggleMathPalette(palette, b, body); return; }
+    if (b.dataset.cmd === 'table') { toggleTablePicker(box, body); return; }
+    if (b.dataset.cmd === 'video') { toggleVideoPop(box, body); return; }
     if (!body.contains(document.getSelection().anchorNode)) placeCaretAtEnd(body);
     command(b.dataset.cmd, body);
+    updateAlignButtons();
+    changed();
+  });
+  setupTablePicker(box, body);
+  setupVideoPop(box, body);
+  setupTableTools(box, body);
+  body.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') { tableTab(e, body); return; }
+    // Word shortcuts for alignment (and stop the browser's own Ctrl+L / E / R / J)
+    const align = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && ALIGN_KEYS[e.key.toLowerCase()];
+    if (align) { e.preventDefault(); document.execCommand(align, false, null); updateAlignButtons(); changed(); }
+  });
+  body.addEventListener('click', (e) => {
+    const x = e.target.closest('.vid-x');
+    if (!x) return;
+    x.closest('figure').remove();
+    tidyEmpty(body);
     changed();
   });
   palette.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
@@ -775,7 +945,7 @@ for (const box of document.querySelectorAll('.rich')) {
     const b = e.target.closest('button');
     if (b) insertMath(body, b.dataset.tex, 'raw' in b.dataset);
   });
-  body.addEventListener('input', () => { tidyEmpty(body); changed(); });
+  body.addEventListener('input', () => { tidyEmpty(body); prepareRich(body); changed(); });
   body.addEventListener('paste', (e) => onPaste(e, body));
   body.addEventListener('dragover', (e) => { if (hasImageFiles(e.dataTransfer)) { e.preventDefault(); box.classList.add('drag-over'); } });
   body.addEventListener('dragleave', () => box.classList.remove('drag-over'));
@@ -783,7 +953,369 @@ for (const box of document.querySelectorAll('.rich')) {
   body.addEventListener('click', (e) => { if (e.target.tagName === 'IMG') selectImage(e.target, body); });
 }
 
-function tidyEmpty(body) { if (!body.textContent.trim() && !body.querySelector('img')) body.innerHTML = ''; }
+function tidyEmpty(body) { if (!body.textContent.trim() && !body.querySelector('img, table, figure[data-video]')) body.innerHTML = ''; }
+
+/* ---------- tables and videos in the rich editors ---------- */
+// one panel under a toolbar at a time (math palette, table picker, video box)
+function closePanels(box, except) {
+  for (const sel of ['.math-palette', '.table-picker', '.video-pop']) {
+    const p = box.querySelector(sel);
+    if (p !== except) p.hidden = true;
+  }
+  for (const b of box.querySelectorAll('.rich-toolbar button.active:not(.align-btn)')) {
+    if (!except || b.dataset.cmd !== except.dataset.panel) b.classList.remove('active');
+  }
+}
+function toggleTablePicker(box, body) {
+  const picker = box.querySelector('.table-picker');
+  const open = picker.hidden;
+  closePanels(box, open ? picker : null);
+  picker.hidden = !open;
+  box.querySelector('[data-cmd="table"]').classList.toggle('active', open);
+  // remember where the caret was, so the table goes there
+  picker.range = saveRange(body);
+}
+function saveRange(body) {
+  const s = document.getSelection();
+  return s.rangeCount && body.contains(s.anchorNode) ? s.getRangeAt(0).cloneRange() : null;
+}
+function restoreRange(body, range) {
+  body.focus();
+  if (range) { const s = document.getSelection(); s.removeAllRanges(); s.addRange(range); }
+  else placeCaretAtEnd(body);
+}
+
+function setupTablePicker(box, body) {
+  const picker = box.querySelector('.table-picker');
+  picker.dataset.panel = 'table';
+  const grid = picker.querySelector('.tp-grid'), size = picker.querySelector('.tp-size');
+  const ROWS = 8, COLS = 8;
+  for (let r = 1; r <= ROWS; r++) for (let c = 1; c <= COLS; c++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.r = r; b.dataset.c = c;
+    b.setAttribute('aria-label', `${r} rows × ${c} columns`);
+    grid.appendChild(b);
+  }
+  const mark = (r, c) => {
+    for (const b of grid.children) b.classList.toggle('on', +b.dataset.r <= r && +b.dataset.c <= c);
+    size.textContent = r ? `${r} × ${c}` : 'Pick a size';
+  };
+  grid.addEventListener('mousedown', (e) => e.preventDefault());
+  grid.addEventListener('mouseover', (e) => { const b = e.target.closest('button'); if (b) mark(+b.dataset.r, +b.dataset.c); });
+  grid.addEventListener('focusin', (e) => { const b = e.target.closest('button'); if (b) mark(+b.dataset.r, +b.dataset.c); });
+  grid.addEventListener('mouseleave', () => mark(0, 0));
+  grid.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const rows = +b.dataset.r, cols = +b.dataset.c;
+    // the first row is the header row
+    const row = (tag) => '<tr>' + `<${tag}><br></${tag}>`.repeat(cols) + '</tr>';
+    const html = `<table data-new="1"><thead>${row('th')}</thead>${rows > 1 ? `<tbody>${row('td').repeat(rows - 1)}</tbody>` : ''}</table><p><br></p>`;
+    restoreRange(body, picker.range);
+    document.execCommand('insertHTML', false, html);
+    closePanels(box, null);
+    // put the caret in the first header cell of the new table
+    const table = body.querySelector('table[data-new]');
+    if (table) {
+      table.removeAttribute('data-new');
+      placeCaretIn(table.querySelector('th, td'));
+    }
+    changed();
+  });
+  mark(0, 0);
+}
+function placeCaretIn(el) {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  r.collapse(true);
+  const s = document.getSelection();
+  s.removeAllRanges(); s.addRange(r);
+}
+
+function toggleVideoPop(box, body) {
+  const pop = box.querySelector('.video-pop');
+  const open = pop.hidden;
+  closePanels(box, open ? pop : null);
+  pop.hidden = !open;
+  box.querySelector('[data-cmd="video"]').classList.toggle('active', open);
+  if (open) {
+    pop.range = saveRange(body);
+    videoMsg(pop, '');
+    pop.querySelector('.vp-link').value = '';
+    pop.querySelector('.vp-file').focus();
+  }
+}
+const VIDEO_HELP = 'MP4 or WebM, up to 100 MB. You can also drop a video file into the text. It plays on its own, muted, and loops.';
+function videoMsg(pop, text, isErr = false) {
+  const msg = pop.querySelector('.vp-msg');
+  msg.className = 'vp-msg' + (isErr ? ' err' : '');
+  msg.textContent = text || VIDEO_HELP;
+}
+const isVideoFile = (f) => /^video\/(mp4|webm|quicktime|x-m4v)$/.test(f.type) || /\.(mp4|m4v|webm)$/i.test(f.name);
+const hasVideoFiles = (dt) => dt && [...dt.items || []].some((i) => i.kind === 'file' && i.type.startsWith('video/'));
+
+// Upload with a progress callback (fetch can't report upload progress).
+function uploadVideo(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    if (!isVideoFile(file)) return reject(new Error('Only MP4 and WebM videos are allowed.'));
+    if (file.size > 100 * 1024 * 1024) return reject(new Error('Video is too large (max 100 MB).'));
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'api/upload-video');
+    xhr.setRequestHeader('X-Admin-Key', adminKey);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status === 401) { logout('Your session ended. Please log in again.'); return reject(new Error('auth')); }
+      if (xhr.status >= 200 && xhr.status < 300 && data.url) resolve(data.url);
+      else reject(new Error(data.error || 'Upload failed.'));
+    };
+    xhr.onerror = () => reject(new Error('Could not reach the server. Is it running? (start.bat)'));
+    xhr.send(file);
+  });
+}
+function insertVideo(body, range, url) {
+  restoreRange(body, range);
+  document.execCommand('insertHTML', false, `<figure data-video="${esc(url)}"></figure><p><br></p>`);
+  prepareRich(body);
+  changed();
+}
+// upload a file and put it at range, showing progress in the video box
+async function addVideoFile(box, body, file, range) {
+  const pop = box.querySelector('.video-pop'), bar = pop.querySelector('.vp-bar');
+  if (pop.hidden) { closePanels(box, pop); pop.hidden = false; box.querySelector('[data-cmd="video"]').classList.add('active'); }
+  pop.classList.add('busy');
+  bar.hidden = false;
+  bar.firstElementChild.style.width = '0';
+  videoMsg(pop, `Uploading ${file.name}…`);
+  try {
+    const url = await uploadVideo(file, (f) => {
+      bar.firstElementChild.style.width = Math.round(f * 100) + '%';
+      videoMsg(pop, `Uploading ${file.name}… ${Math.round(f * 100)}%`);
+    });
+    insertVideo(body, range, url);
+    closePanels(box, null);
+    toast('Video added ✓');
+  } catch (e) {
+    if (e.message !== 'auth') videoMsg(pop, e.message, true);
+  } finally {
+    pop.classList.remove('busy');
+    bar.hidden = true;
+  }
+}
+function setupVideoPop(box, body) {
+  const pop = box.querySelector('.video-pop');
+  pop.dataset.panel = 'video';
+  const input = pop.querySelector('.vp-link');
+  pop.querySelector('.vp-file').addEventListener('click', () => {
+    const f = document.createElement('input');
+    f.type = 'file';
+    f.accept = 'video/mp4,video/webm,.mp4,.m4v,.webm';
+    f.addEventListener('change', () => { if (f.files[0]) addVideoFile(box, body, f.files[0], pop.range); });
+    f.click();
+  });
+  pop.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = ProblemView.parseVideo(input.value);
+    if (!v) {
+      videoMsg(pop, 'That link is not a video file. Use a link that ends in .mp4 or .webm, or choose a file instead.', true);
+      input.focus();
+      return;
+    }
+    insertVideo(body, pop.range, v.url);
+    closePanels(box, null);
+  });
+  const cancel = () => { closePanels(box, null); restoreRange(body, pop.range); };
+  pop.querySelector('.vp-cancel').addEventListener('click', cancel);
+  pop.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); cancel(); } });
+
+  // drop a video file straight into the text
+  body.addEventListener('dragover', (e) => { if (hasVideoFiles(e.dataTransfer)) { e.preventDefault(); box.classList.add('drag-over'); } });
+  body.addEventListener('drop', (e) => {
+    const file = [...(e.dataTransfer.files || [])].find(isVideoFile);
+    if (!file) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    box.classList.remove('drag-over');
+    let range = null;
+    if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    addVideoFile(box, body, file, range);
+  });
+}
+// video cards can't be typed into; they show a small preview and get a ✕ to remove them
+function prepareRich(body) {
+  for (const fig of body.querySelectorAll('figure[data-video]')) {
+    if (fig.contentEditable !== 'false') fig.contentEditable = 'false';
+    const v = ProblemView.parseVideo(fig.getAttribute('data-video'));
+    if (v && !fig.querySelector('.vid-thumb')) {
+      const thumb = document.createElement('video');
+      thumb.className = 'vid-thumb';
+      thumb.muted = true;
+      thumb.preload = 'metadata';
+      thumb.src = v.src + '#t=0.5';   // a frame from the start, not a black screen
+      fig.prepend(thumb);
+    }
+    if (!fig.querySelector('.vid-x')) {
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'vid-x';
+      x.textContent = '✕';
+      x.title = 'Remove video';
+      x.setAttribute('aria-label', 'Remove video');
+      fig.appendChild(x);
+    }
+  }
+}
+
+// the cell the caret is in (inside this editor), or null
+function currentCell(body) {
+  const s = document.getSelection();
+  if (!s.rangeCount) return null;
+  let n = s.anchorNode;
+  if (n && n.nodeType !== 1) n = n.parentElement;
+  const cell = n && n.closest('td, th');
+  return cell && body.contains(cell) ? cell : null;
+}
+function newCell(likeRow) {
+  const c = document.createElement(likeRow.parentElement.tagName === 'THEAD' ? 'th' : 'td');
+  c.appendChild(document.createElement('br'));
+  return c;
+}
+function newRow(table) {
+  const tr = document.createElement('tr');
+  const n = Math.max(...[...table.rows].map((r) => r.cells.length), 1);
+  for (let i = 0; i < n; i++) { const td = document.createElement('td'); td.appendChild(document.createElement('br')); tr.appendChild(td); }
+  return tr;
+}
+function tableBody(table) {
+  let tb = table.tBodies[0];
+  if (!tb) { tb = document.createElement('tbody'); table.appendChild(tb); }
+  return tb;
+}
+function tableAction(action, body) {
+  const cell = currentCell(body);
+  if (!cell) return;
+  const tr = cell.parentElement, table = cell.closest('table'), col = cell.cellIndex;
+  const inHead = tr.parentElement.tagName === 'THEAD';
+  const rowIdx = tr.rowIndex;
+  let focus = cell;
+  switch (action) {
+    case 'row-above': {
+      const r = newRow(table);
+      if (inHead) tableBody(table).prepend(r); else tr.before(r);   // nothing goes above the header row
+      focus = r.cells[Math.min(col, r.cells.length - 1)];
+      break;
+    }
+    case 'row-below': {
+      const r = newRow(table);
+      if (inHead) tableBody(table).prepend(r); else tr.after(r);
+      focus = r.cells[Math.min(col, r.cells.length - 1)];
+      break;
+    }
+    case 'col-left': case 'col-right':
+      for (const row of table.rows) {
+        const ref = row.cells[Math.min(col, row.cells.length - 1)];
+        const c = newCell(row);
+        if (!ref) row.appendChild(c); else if (action === 'col-left') ref.before(c); else ref.after(c);
+        if (row === tr) focus = c;
+      }
+      break;
+    case 'del-row':
+      if (table.rows.length <= 1) { removeTable(table, body); return; }
+      if (inHead) tr.parentElement.remove(); else tr.remove();
+      focus = table.rows[Math.min(rowIdx, table.rows.length - 1)]?.cells[Math.min(col, 99)];
+      if (!focus) focus = table.querySelector('th, td');
+      break;
+    case 'del-col':
+      if (Math.max(...[...table.rows].map((r) => r.cells.length)) <= 1) { removeTable(table, body); return; }
+      for (const row of [...table.rows]) if (row.cells[col]) row.cells[col].remove();
+      focus = tr.cells[Math.min(col, tr.cells.length - 1)];
+      break;
+    case 'del-table':
+      removeTable(table, body);
+      return;
+    // where the table sits on the page (saved as margin-left / margin-right: auto)
+    case 'align-left': table.style.marginLeft = ''; table.style.marginRight = ''; break;
+    case 'align-center': table.style.marginLeft = 'auto'; table.style.marginRight = 'auto'; break;
+    case 'align-right': table.style.marginLeft = 'auto'; table.style.marginRight = '0'; break;
+    case 'full-width': table.style.width = table.style.width === '100%' ? '' : '100%'; break;
+  }
+  if (!table.getAttribute('style')) table.removeAttribute('style');
+  updateTableTools();
+  if (focus) placeCaretIn(focus);
+  changed();
+}
+function removeTable(table, body) {
+  const after = table.nextElementSibling;
+  table.remove();
+  if (after) placeCaretIn(after); else placeCaretAtEnd(body);
+  tidyEmpty(body);
+  changed();
+}
+function setupTableTools(box, body) {
+  const tools = box.querySelector('.table-tools');
+  tools.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+  tools.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) tableAction(b.dataset.t, body);
+  });
+}
+// Tab / Shift+Tab move between cells; Tab in the last cell adds a row
+function tableTab(e, body) {
+  const cell = currentCell(body);
+  if (!cell) return;
+  e.preventDefault();
+  const cells = [...cell.closest('table').querySelectorAll('th, td')];
+  const i = cells.indexOf(cell) + (e.shiftKey ? -1 : 1);
+  if (i >= 0 && i < cells.length) { placeCaretIn(cells[i]); return; }
+  if (!e.shiftKey) {
+    const table = cell.closest('table');
+    const r = newRow(table);
+    tableBody(table).appendChild(r);
+    placeCaretIn(r.cells[0]);
+    changed();
+  }
+}
+// show the table tools while the caret is in a table, and mark the current cell
+let activeCell = null;
+function updateTableTools() {
+  let cell = null;
+  for (const box of document.querySelectorAll('.rich')) {
+    const c = currentCell(box.querySelector('.rich-body'));
+    const tools = box.querySelector('.table-tools');
+    tools.hidden = !c;
+    if (!c) continue;
+    cell = c;
+    // light up the table's current position
+    const st = c.closest('table').style;
+    const pos = st.marginLeft === 'auto' ? (st.marginRight === 'auto' ? 'align-center' : 'align-right') : 'align-left';
+    for (const b of tools.querySelectorAll('.tt-align')) {
+      b.classList.toggle('on', b.dataset.t === pos || (b.dataset.t === 'full-width' && st.width === '100%'));
+    }
+  }
+  if (cell !== activeCell) {
+    activeCell?.classList.remove('cell-active');
+    cell?.classList.add('cell-active');
+    activeCell = cell;
+  }
+}
+
+// text alignment: Ctrl+L / E / R / J like Word, and the toolbar shows the current one
+const ALIGN_KEYS = { l: 'justifyLeft', e: 'justifyCenter', r: 'justifyRight', j: 'justifyFull' };
+function updateAlignButtons() {
+  for (const box of document.querySelectorAll('.rich')) {
+    const body = box.querySelector('.rich-body');
+    const inside = body.contains(document.getSelection().anchorNode);
+    for (const b of box.querySelectorAll('.align-btn')) {
+      let on = false;
+      if (inside) { try { on = document.queryCommandState(b.dataset.cmd); } catch {} }
+      b.classList.toggle('active', on);
+    }
+  }
+}
+document.addEventListener('selectionchange', () => { updateTableTools(); updateAlignButtons(); });
 function placeCaretAtEnd(el) {
   el.focus();
   const r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
@@ -1311,13 +1843,78 @@ drop.addEventListener('drop', (e) => {
 });
 
 /* ---------- made by (several authors) ---------- */
-function addAuthor(name = '', focus = false) {
+const PERSON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1.2-3.6 4-5.2 7-5.2s5.8 1.6 7 5.2"/></svg>';
+
+// author = { name, avatar } (a plain name string also works)
+function addAuthor(author = '', focus = false) {
+  const a = author && typeof author === 'object' ? author : { name: author };
   const row = document.createElement('div');
   row.className = 'author-row';
+  row.dataset.avatar = a.avatar || '';
+
+  const av = document.createElement('div');
+  av.className = 'author-av';
+  const pick = document.createElement('button');
+  pick.type = 'button';
+  pick.className = 'av-pick';
+  const removeAv = document.createElement('button');
+  removeAv.type = 'button';
+  removeAv.className = 'av-remove';
+  removeAv.textContent = '✕';
+  removeAv.title = 'Remove picture';
+  av.append(pick, removeAv);
+
   const input = document.createElement('input');
   input.maxLength = 100;
   input.placeholder = 'Author name';
-  input.value = name;
+  input.value = a.name || '';
+
+  // the circle shows the picture, else the first letter of the name, else a person icon
+  function drawAvatar() {
+    const url = row.dataset.avatar;
+    av.classList.toggle('has', !!url);
+    pick.title = url ? 'Change picture (or drop an image here)' : 'Add a profile picture (or drop an image here)';
+    pick.setAttribute('aria-label', pick.title);
+    if (url) {
+      pick.textContent = '';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      pick.appendChild(img);
+    } else {
+      const first = [...input.value.trim()][0];
+      if (first) pick.textContent = first.toUpperCase();
+      else pick.innerHTML = PERSON_ICON;
+    }
+  }
+  async function setPicture(file) {
+    av.classList.add('busy');
+    try {
+      row.dataset.avatar = await upload(file);
+      drawAvatar();
+      changed();
+    } catch (e) {
+      if (e.message !== 'auth') toast(e.message);
+    } finally { av.classList.remove('busy'); }
+  }
+  pick.addEventListener('click', () => {
+    const f = document.createElement('input');
+    f.type = 'file';
+    f.accept = 'image/png,image/jpeg,image/gif,image/webp';
+    f.addEventListener('change', () => { if (f.files[0]) setPicture(f.files[0]); });
+    f.click();
+  });
+  removeAv.addEventListener('click', () => { row.dataset.avatar = ''; drawAvatar(); changed(); pick.focus(); });
+  av.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); av.classList.add('drop'); });
+  av.addEventListener('dragleave', () => av.classList.remove('drop'));
+  av.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    av.classList.remove('drop');
+    const file = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/'));
+    if (file) setPicture(file);
+  });
+  input.addEventListener('input', () => { if (!row.dataset.avatar) drawAvatar(); });
+  drawAvatar();
   // Enter adds the next author
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addAuthor('', true); changed(); } });
   const remove = document.createElement('button');
@@ -1330,7 +1927,7 @@ function addAuthor(name = '', focus = false) {
     if (!$('f-authors').children.length) addAuthor();
     changed();
   });
-  row.append(input, remove);
+  row.append(av, input, remove);
   $('f-authors').appendChild(row);
   if (focus) input.focus();
 }
@@ -1877,33 +2474,77 @@ $('clans-close').addEventListener('click', closeClans);
 $('clans-back').addEventListener('mousedown', (e) => { if (e.target === $('clans-back')) closeClans(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('clans-back').hidden) closeClans(); });
 
+/* ---------- camp timer ---------- */
+let tmState = null, tmFetchedAt = 0;
+const tmLeft = () => (!tmState ? 0 : tmState.status === 'running'
+  ? Math.max(0, tmState.leftMs - (performance.now() - tmFetchedAt)) : tmState.leftMs);
+function tmFormat(ms) {
+  const s = Math.ceil(ms / 1000), two = (n) => String(n).padStart(2, '0');
+  return `${Math.floor(s / 3600)}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
+}
+function tmApply(state) { tmState = state; tmFetchedAt = performance.now(); renderTimerUi(); }
+async function loadTimerState() {
+  try { const r = await fetch('api/timer', { cache: 'no-store' }); if (r.ok) tmApply(await r.json()); } catch {}
+}
+function renderTimerUi() {
+  if (!tmState) return;
+  const left = tmLeft();
+  const status = tmState.status === 'running' && left <= 0 ? 'ended' : tmState.status;
+  const text = status === 'off' ? '--:--' : status === 'ended' ? "TIME'S UP" : tmFormat(left);
+  $('tm-left').textContent = text;
+  $('tm-status').textContent = { running: 'Running', paused: 'Paused', ready: 'Ready, not started', ended: "Time's up: Submit is closed", off: 'No timer' }[status];
+  $('tm-left').parentElement.className = 'tm-readout ' + status;
+  $('tm-start').textContent = status === 'paused' ? '▶ Resume' : '▶ Start';
+  $('tm-start').disabled = !['ready', 'paused'].includes(status);
+  $('tm-pause').disabled = status !== 'running';
+  $('tm-off').disabled = status === 'off';
+  const chip = $('timer-btn-left');
+  chip.textContent = status === 'off' ? '' : status === 'ended' ? '0:00:00' : tmFormat(left);
+  chip.className = status;
+}
+async function timerAction(body) {
+  try { tmApply(await api('POST', 'api/admin/timer', body)); }
+  catch (e) {
+    if (e.message === 'auth') return;
+    // an older server.js has no timer yet and answers without a message
+    toast(e.message === 'Request failed.' ? 'The server has no timer yet: restart it (close the server window and run start.bat).' : e.message);
+  }
+}
+$('timer-btn').addEventListener('click', () => {
+  $('timer-back').hidden = false;
+  loadTimerState();
+});
+const closeTimer = () => { $('timer-back').hidden = true; };
+$('timer-close').addEventListener('click', closeTimer);
+$('timer-back').addEventListener('mousedown', (e) => { if (e.target === $('timer-back')) closeTimer(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('timer-back').hidden) closeTimer(); });
+$('tm-start').addEventListener('click', () => timerAction({ action: 'start' }));
+$('tm-pause').addEventListener('click', () => timerAction({ action: 'pause' }));
+$('tm-off').addEventListener('click', () => {
+  if (confirm('Turn the timer off? The countdown disappears from the map and Submit is open again.')) timerAction({ action: 'off' });
+});
+$('tm-set').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const seconds = (Number($('tm-h').value) || 0) * 3600 + (Number($('tm-m').value) || 0) * 60 + (Number($('tm-s').value) || 0);
+  if (seconds < 1) return toast('Enter a time first.');
+  if (tmState && tmState.status === 'running' && !confirm('The timer is running. Replace it with the new time (paused)?')) return;
+  timerAction({ action: 'set', seconds });
+});
+setInterval(renderTimerUi, 250);
+setInterval(() => { if (!document.hidden) loadTimerState(); }, 15000);
+loadTimerState();
+
 async function renderClans() {
   let data;
   try { data = await api('GET', 'api/admin/clans'); } catch (e) { if (e.message !== 'auth') toast(e.message); return; }
-  const mine = Clan.id();
-  const me = data.clans.find((c) => c.id === mine);
-
-  // which clan this browser plays for
-  const bar = $('playing-as');
-  bar.textContent = '';
-  if (me) {
-    bar.style.setProperty('--clan', me.color);
-    bar.innerHTML = '<img alt=""><span>This browser plays for <b></b>. Its submits, hints and code count for that clan.</span><span class="spacer"></span>';
-    bar.querySelector('img').src = Clan.logo(me.id);
-    bar.querySelector('b').textContent = me.name;
-    const stop = document.createElement('button');
-    stop.type = 'button'; stop.textContent = 'Stop playing as a clan';
-    stop.addEventListener('click', () => { Clan.set(null); toast('This browser no longer plays for a clan'); renderClans(); });
-    bar.appendChild(stop);
-  } else {
-    bar.innerHTML = '<span>This browser doesn\'t play for a clan: it practises on its own, and nothing counts for a score.</span>';
-  }
-
+  const members = data.members || {};
   const grid = $('clan-grid');
+  // keep each clan's student list open/closed across the 5-second refresh
+  const openLists = new Set([...grid.querySelectorAll('.cc-members[open]')].map((d) => d.dataset.clan));
   grid.textContent = '';
   for (const c of data.clans) {
     const card = document.createElement('div');
-    card.className = 'clan-card' + (c.id === mine ? ' active' : '');
+    card.className = 'clan-card';
     card.style.setProperty('--clan', c.color);
     card.innerHTML = `
       <div class="cc-top">
@@ -1917,8 +2558,9 @@ async function renderClans() {
         <div><b class="hints"></b><span>Hints left</span></div>
         <div><b class="firsts"></b><span>Specials 1st</span></div>
       </div>
+      <details class="cc-members"><summary></summary><ol></ol></details>
       <div class="cc-actions">
-        <button type="button" class="play"></button>
+        <span class="spacer"></span>
         <button type="button" class="danger reset" title="Clear this clan's progress, score, hints and shared code">Reset</button>
       </div>`;
     card.querySelector('img').src = Clan.logo(c.id);
@@ -1926,23 +2568,22 @@ async function renderClans() {
     card.querySelector('.nm b').textContent = c.name;
     card.querySelector('.nm small').textContent = c.thai;
     card.querySelector('.no').textContent = `CLAN ${String(c.no).padStart(2, '0')}`;
-    if (c.id === mine) {
-      const here = document.createElement('span');
-      here.className = 'here'; here.textContent = 'This browser';
-      card.querySelector('.cc-top').appendChild(here);
+    const list = members[c.id] || [];
+    const det = card.querySelector('.cc-members');
+    det.dataset.clan = c.id;
+    det.open = openLists.has(c.id);
+    det.querySelector('summary').textContent = list.length ? `${list.length} students` : 'No students yet';
+    for (const s of list) {
+      const li = document.createElement('li');
+      const un = document.createElement('span'); un.className = 'un'; un.textContent = s.username;
+      const nm = document.createElement('span'); nm.textContent = s.name + (s.grade ? ` (${s.grade})` : '');
+      li.append(un, nm);
+      det.querySelector('ol').appendChild(li);
     }
     card.querySelector('.score').textContent = c.score;
     card.querySelector('.cleared').textContent = `${c.cleared}/${data.missions}`;
     card.querySelector('.hints').textContent = `${c.hintsLeft}/${data.hintsPerClan}`;
     card.querySelector('.firsts').textContent = c.firsts.length;
-    const play = card.querySelector('.play');
-    play.textContent = c.id === mine ? '✓ Playing as this clan' : 'Play as this clan';
-    play.className = 'play' + (c.id === mine ? '' : ' primary');
-    play.addEventListener('click', () => {
-      Clan.set(c.id === mine ? null : c.id);
-      toast(c.id === mine ? 'This browser no longer plays for a clan' : `This browser now plays for ${c.name}`);
-      renderClans();
-    });
     card.querySelector('.reset').addEventListener('click', async () => {
       if (!confirm(`Reset ${c.name}?\n\nThis clears its cleared missions, score, used hints and shared code. It cannot be undone.`)) return;
       try { await api('POST', `api/admin/clans/${encodeURIComponent(c.id)}/reset`); toast(`${c.name} reset`); renderClans(); }
@@ -1954,8 +2595,10 @@ async function renderClans() {
   // the scoring rules, for reference (players never see points per mission)
   const pts = data.points;
   $('scoring').innerHTML = '<span>Scoring:</span>' +
+    '<span>☆ Example <b>0</b></span>' +
     ['1', '2', '3', '4', '5', '6'].map((l) => `<span>${'★'.repeat(Number(l))} <b>${pts[l]}</b></span>`).join('') +
-    `<span>◆ Special <b>${pts.specialFirst}</b> first clan, <b>${pts.specialLater}</b> after</span>` +
+    '<span>partly passed: points × % of tests passed (best Submit), rounded down</span>' +
+    `<span>◆ Special <b>${pts.specialFirst}</b> first clan, <b>${pts.specialLater}</b> after (full clear only)</span>` +
     `<span>Hints per clan <b>${data.hintsPerClan}</b></span>`;
 }
 
@@ -1973,7 +2616,7 @@ $('reset-progress').addEventListener('click', () => {
   try {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-    for (const k of keys) if (/^(code:|solved:|hint:|progress:)|^hints-left$/.test(k)) localStorage.removeItem(k);
+    for (const k of keys) if (/^(code:|solved:|hint:|progress:|suites:)|^hints-left$/.test(k)) localStorage.removeItem(k);
     toast('Progress reset ✓');
   } catch { toast('Could not reset: this browser blocks site storage.'); }
 });
@@ -1986,7 +2629,9 @@ function collect() {
     number: $('f-number').value.trim(),
     name: $('f-name').value.trim(),
     difficulty: level,
-    madeBy: [...$('f-authors').querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean),
+    madeBy: [...$('f-authors').querySelectorAll('.author-row')]
+      .map((r) => ({ name: r.querySelector('input').value.trim(), avatar: r.dataset.avatar || '' }))
+      .filter((a) => a.name),
     timeLimit: Number($('f-time').value) || 1,
     memoryLimit: Number($('f-memory').value) || 256,
     statement: html('statement'), input: html('input'), output: html('output'), constraints: html('constraints'),
@@ -2027,7 +2672,10 @@ function fill(p) {
   (authors.length ? authors : ['']).forEach((a) => addAuthor(a));
   $('f-time').value = p.timeLimit ?? 1;
   $('f-memory').value = p.memoryLimit ?? 256;
-  for (const f of ['statement', 'input', 'output', 'constraints', 'hint', 'p1Task', 'p2Task', 'p1Output', 'p2Output', 'p1Hint', 'p2Hint']) rich[f].innerHTML = ProblemView.sanitize(p[f] || '');
+  for (const f of ['statement', 'input', 'output', 'constraints', 'hint', 'p1Task', 'p2Task', 'p1Output', 'p2Output', 'p1Hint', 'p2Hint']) {
+    rich[f].innerHTML = ProblemView.sanitize(p[f] || '');
+    prepareRich(rich[f]);
+  }
   $('samples').textContent = '';
   (p.samples && p.samples.length ? p.samples : [{ input: '', output: '' }]).forEach((s) => addSample(s));
   $('form-title').textContent = currentId ? `Editing ${ProblemView.starsText(level)} · Problem ${p.number}` : 'New problem';

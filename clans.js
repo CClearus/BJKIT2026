@@ -1,13 +1,13 @@
 // Clans (the six teams of the camp). Everything here is shared by the whole clan:
 // cleared missions, best test progress, score, hints and the code being written.
 //
-// Which clan a request belongs to is decided in ONE place: clanOf(req).
-// For now the browser says it in the X-Clan header (set by the admin's "Play as" button).
-// Later the player roster (spreadsheet / Supabase) will decide it there instead.
+// Which clan a request belongs to is decided in ONE place: clanOf(req),
+// from the logged-in student (students.js, roster in data/students.json).
 
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
+const students = require('./students');
 
 const CLANS = [
   { id: 'erawan', no: 1, name: 'Erawan', thai: 'เอราวัณ', color: '#8E86BE' },
@@ -19,19 +19,24 @@ const CLANS = [
 ];
 const CLAN_IDS = new Set(CLANS.map((c) => c.id));
 
-// Points for clearing a mission (never shown per mission, only the clan's total).
-// Special missions: the first clan to clear one gets SPECIAL_FIRST, every later clan SPECIAL_LATER.
-const POINTS = { 1: 5, 2: 20, 3: 30, 4: 60, 5: 120, 6: 200 };
+// Points for a mission (never shown per mission, only the clan's total).
+// Normal missions: points × the share of hidden tests passed in the clan's best Submit, rounded down
+// (every test counts the same: team tests and each player's own tests). 100% = full points + cleared.
+// Special missions are all-or-nothing: the first clan to clear one gets SPECIAL_FIRST, every later clan SPECIAL_LATER.
+const POINTS = { 0: 0, 1: 5, 2: 20, 3: 30, 4: 60, 5: 120, 6: 200 };   // level 0 = example missions, no points
 const SPECIAL_FIRST = 50;
 const SPECIAL_LATER = 20;
 const HINTS_PER_CLAN = 3;
 const CODE_SLOTS = ['p1', 'p2', 'c'];   // co-op: Player 1 / Player 2 boxes; solo: the one box
 
 let STATE_FILE, CODE_FILE;
-let state = {};   // clanId -> { solved: {pid: iso}, progress: {pid: {passed, total}}, hintsUsed, revealed: {"pid:scope": iso} }
+// clanId -> { solved: {pid: iso}, progress: {pid: {passed, total}}, suites: {pid: {team|p1|p2: {passed, total}}},
+//             hintsUsed, revealed: {"pid:scope": iso} }
+// progress is the best whole Submit; suites keeps each test set's own best (once full, it stays full).
+let state = {};
 let code = {};    // clanId -> { pid -> { slot -> { code, v } } }
 
-const blank = () => ({ solved: {}, progress: {}, hintsUsed: 0, revealed: {} });
+const blank = () => ({ solved: {}, progress: {}, suites: {}, hintsUsed: 0, revealed: {} });
 const clanState = (id) => (state[id] ||= blank());
 
 function load(dataDir) {
@@ -57,10 +62,10 @@ function persist(which) {
   }, 400);
 }
 
-// The one place that decides who a request plays for.
+// The one place that decides who a request plays for: the logged-in student's clan (data/students.json).
 function clanOf(req) {
-  const id = String(req.headers['x-clan'] || '').trim().toLowerCase();
-  return CLAN_IDS.has(id) ? id : null;
+  const u = students.userOf(req);
+  return u && CLAN_IDS.has(u.clan) ? u.clan : null;
 }
 
 /* ---------- score ---------- */
@@ -83,19 +88,30 @@ function scoreOf(id, problems, firsts = firstClears(problems)) {
   if (!s) return 0;
   let total = 0;
   for (const p of problems) {
-    if (!s.solved[p.id]) continue;
-    if (p.difficulty === 'special') total += firsts[p.id] === id ? SPECIAL_FIRST : SPECIAL_LATER;
-    else total += POINTS[p.difficulty] || 0;
+    if (p.difficulty === 'special') {
+      if (s.solved[p.id]) total += firsts[p.id] === id ? SPECIAL_FIRST : SPECIAL_LATER;
+      continue;
+    }
+    const pts = POINTS[p.difficulty] || 0;
+    const best = s.progress[p.id];
+    if (s.solved[p.id]) total += pts;
+    // multiply first, then divide: whole numbers, so 29% of 100 is 29 (not 28.999…)
+    else if (best && best.total > 0) total += Math.floor((pts * best.passed) / best.total);
   }
   return total;
 }
+const better = (a, b) => !b || !b.total || a.passed / a.total >= b.passed / b.total;
 
 /* ---------- submit ---------- */
-// Keeps the best progress and the FIRST time the clan cleared the mission.
-function recordSubmit(id, pid, passed, total, accepted) {
+// Keeps the best progress, each test set's best (sets = { team, p1, p2 } -> { passed, total })
+// and the FIRST time the clan cleared the mission.
+function recordSubmit(id, pid, passed, total, accepted, sets = {}) {
   const s = clanState(id);
-  const best = s.progress[pid];
-  if (!best || !best.total || passed / total >= best.passed / best.total) s.progress[pid] = { passed, total };
+  if (total > 0 && better({ passed, total }, s.progress[pid])) s.progress[pid] = { passed, total };
+  const mine = ((s.suites ||= {})[pid] ||= {});
+  for (const [suite, r] of Object.entries(sets)) {
+    if (r && r.total > 0 && better(r, mine[suite])) mine[suite] = { passed: r.passed, total: r.total };
+  }
   if (accepted && !s.solved[pid]) s.solved[pid] = new Date().toISOString();
   persist('state');
 }
@@ -138,6 +154,7 @@ function stateFor(id, problems) {
     score: scoreOf(id, problems, firsts),
     solved: Object.keys(s.solved).filter((pid) => ids.has(pid)),
     progress: s.progress,
+    suites: s.suites || {},
     started: Object.keys(code[id] || {}).filter((pid) => ids.has(pid)),
     hintsLeft: hintsLeft(id),
     revealed: Object.keys(s.revealed),

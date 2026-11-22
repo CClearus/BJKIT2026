@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Co-op Problems Work</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  /* A guide for the admin (setting problems up) and for teaching students.
+     Uses the site's own theme tokens; Player 1 / Player 2 colors match the editors. */
+  html, body { height: auto; }
+  body { font: 16px/1.65 "Sarabun", var(--font-ui); }
+  .page { max-width: 54rem; margin: 0 auto; padding: 36px 16px 80px; display: flex; flex-direction: column; gap: 56px; }
+  h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); font-weight: 800; }
+  h2 { font-size: 1.5rem; font-weight: 800; }
+  h3 { font-size: 1.08rem; font-weight: 700; }
+  p { margin: 0; max-width: 68ch; }
+  section { display: flex; flex-direction: column; gap: 16px; min-width: 0; scroll-margin-top: 16px; }
+  .eyebrow { font: 600 .74rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .lead { color: var(--muted); font-size: 1.08rem; }
+  .muted { color: var(--muted); }
+  code { font: .86em var(--font-mono); background: var(--code-bg); border: 1px solid var(--border); padding: 0 5px; border-radius: 4px; }
+  .p1c { color: var(--p1); font-weight: 700; } .p2c { color: var(--p2); font-weight: 700; } .hc { color: var(--warn); font-weight: 700; }
+
+  /* contents */
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .toc a { display: inline-block; padding: 4px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); text-decoration: none; font-size: .9rem; }
+  .toc a:hover { border-color: var(--accent); }
+
+  /* code pieces, colored by who writes them */
+  .piece { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--code-bg); min-width: 0; }
+  .piece-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; font: 600 .78rem var(--font-mono); border-bottom: 1px solid var(--border); background: var(--surface); }
+  .piece-head .who { margin-left: auto; font-weight: 500; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .dot.p1 { background: var(--p1); } .dot.p2 { background: var(--p2); } .dot.h { background: var(--warn); }
+  .code { margin: 0; padding: 10px 0; overflow-x: auto; font: 13.5px/1.6 var(--font-mono); color: var(--syn-text); counter-reset: ln var(--start, 0); }
+  .code span.l { display: block; padding: 0 14px 0 0; white-space: pre; }
+  .code span.l::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 3.2em; padding-right: 1em; text-align: right; color: var(--syn-comment); opacity: .7; }
+  .code .k { color: var(--syn-keyword); } .code .s { color: var(--syn-string); } .code .n { color: var(--syn-number); } .code .c { color: var(--syn-comment); font-style: italic; } .code .m { color: var(--syn-meta); }
+
+  /* program = stacked pieces with a colored left edge */
+  .program { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--code-bg); }
+  .program .seg { border-left: 4px solid transparent; position: relative; }
+  .program .seg + .seg { border-top: 1px dashed var(--border); }
+  .seg.p1 { border-left-color: var(--p1); } .seg.p2 { border-left-color: var(--p2); } .seg.h { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 6%, transparent); }
+  .seg-label { position: absolute; right: 10px; top: 8px; font: 600 .72rem var(--font-mono); padding: 2px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); }
+  .seg.p1 .seg-label { color: var(--p1); } .seg.p2 .seg-label { color: var(--p2); } .seg.h .seg-label { color: var(--warn); }
+  @media (max-width: 600px) { .seg-label { position: static; display: inline-block; margin: 8px 0 0 12px; } }
+
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 14px; }
+  .callout { border: 1px solid var(--border); border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .callout.bad { border-left-color: var(--err); background: color-mix(in srgb, var(--err) 8%, transparent); }
+
+  /* the three test sets */
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tabs button { border-radius: 999px; padding: 6px 14px; font-weight: 600; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .formula { font: 600 .95rem var(--font-mono); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .formula .chip { padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); }
+  .chip.p1 { color: var(--p1); } .chip.p2 { color: var(--p2); } .chip.h { color: var(--warn); }
+
+  /* tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  th, td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  thead th { border-top: 0; font: 600 .74rem var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  td.mark { font: 700 1rem var(--font-mono); text-align: center; width: 3rem; }
+  .m-P { color: var(--ok); } .m-F, .m-C, .m-X { color: var(--err); } .m-T, .m-E, .m-O, .m-dash, .m-S { color: var(--warn); }
+  .seen { display: inline-block; font: 600 .72rem var(--font-mono); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .seen.all { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  .seen.one { color: var(--accent); background: var(--accent-soft); }
+  .seen.no { color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); }
+  td.num { font-variant-numeric: tabular-nums; }
+
+  /* setup steps: a real order */
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: st; display: flex; flex-direction: column; gap: 12px; }
+  .steps > li { counter-increment: st; display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); gap: 4px 12px; }
+  .steps > li::before { content: counter(st); grid-row: span 2; width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center; font: 700 .9rem var(--font-mono); background: var(--accent-soft); color: var(--accent); }
+  .steps > li > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+  .rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .rules li { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .rules .sym { font: 600 .84rem var(--font-mono); color: var(--err); }
+
+  .script { counter-reset: sc; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .script li { counter-increment: sc; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px 12px 52px; position: relative; }
+  .script li::before { content: counter(sc); position: absolute; left: 16px; top: 12px; font: 700 .9rem var(--font-mono); color: var(--accent); }
+
+  @media (prefers-reduced-motion: no-preference) { .program { transition: opacity .15s; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./">C <span>Practice</span></a>
+  <span class="status">How co-op problems work</span>
+  <span class="spacer"></span>
+  <a class="btn" href="admin.html">⚙ Admin</a>
+</header>
+
+<main class="page">
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <span class="eyebrow">Guide for admins and teachers</span>
+    <h1>How co-op problems work</h1>
+    <p class="lead">What happens to the players' code, what every box in the admin editor is for, and how to explain it to students. Every example uses the problem สร้างบ้านง่าย ๆ.</p>
+    <ul class="toc">
+      <li><a href="#one-program">1. One program, two players</a></li>
+      <li><a href="#test-sets">2. The three test sets</a></li>
+      <li><a href="#results">3. Results and score</a></li>
+      <li><a href="#fields">4. Every admin box</a></li>
+      <li><a href="#setup">5. Setting up a problem</a></li>
+      <li><a href="#rules">6. Rules that keep it working</a></li>
+      <li><a href="#teach">7. Teaching students</a></li>
+    </ul>
+  </header>
+
+  <!-- 1 -->
+  <section id="one-program">
+    <span class="eyebrow">1</span>
+    <h2>One program, two players</h2>
+    <p>In a co-op problem, the two players write <b>one C program together</b>. Player 1 writes the top half, and Player 2 writes the bottom half. The server glues them together into one <code>main.c</code>: Player 1's code, then Player 2's code directly after it.</p>
+    <p>So Player 2 carries on inside the same <code>main()</code> and can use every variable Player 1 made. That's why the Player 2 editor says <b>main.c (continued)</b> and its line numbers carry on from Player 1's.</p>
+    <div class="program" aria-label="The team program for สร้างบ้านง่าย ๆ">
+      <div class="seg p1"><span class="seg-label">Player 1 writes</span>
+<pre class="code" style="--start:0"><span class="l"><span class="m">#include</span> <span class="s">&lt;stdio.h&gt;</span></span><span class="l"></span><span class="l"><span class="k">int</span> main(<span class="k">void</span>) {</span><span class="l">    <span class="k">int</span> w, l, h, f, n;</span><span class="l">    scanf(<span class="s">"%d %d %d %d"</span>, &amp;w, &amp;l, &amp;h, &amp;f);</span><span class="l">    n = <span class="n">2</span> * (w * l + w * h + l * h) * <span class="n">9</span>;</span></pre>
+      </div>
+      <div class="seg p2"><span class="seg-label">Player 2 writes</span>
+<pre class="code" style="--start:6"><span class="l">    <span class="k">int</span> per = f + <span class="n">1</span>;</span><span class="l">    printf(<span class="s">"%d\n"</span>, (n + per - <span class="n">1</span>) / per);</span><span class="l">    <span class="k">return</span> <span class="n">0</span>;</span><span class="l">}</span></pre>
+      </div>
+    </div>
+    <p class="muted">The <b>hand-off</b> is what Player 1 leaves for Player 2. Here it is <code>n</code> (Gold Ingots needed) and <code>f</code> (the Fortune level). Deciding the hand-off is the most important part of designing a co-op problem.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="test-sets">
+    <span class="eyebrow">2</span>
+    <h2>The three test sets</h2>
+    <p>When a team presses <b>Submit</b>, the server builds and tests <b>three different programs</b>, each with its own hidden tests. Pick one to see what is compiled:</p>
+    <div class="tabs" role="tablist" aria-label="Test sets">
+      <button type="button" role="tab" id="tab-team" aria-selected="true" aria-controls="set-view" data-set="team">Team tests</button>
+      <button type="button" role="tab" id="tab-p1" aria-selected="false" aria-controls="set-view" data-set="p1">Player 1 tests</button>
+      <button type="button" role="tab" id="tab-p2" aria-selected="false" aria-controls="set-view" data-set="p2">Player 2 tests</button>
+    </div>
+    <div id="set-view" role="tabpanel" style="display:flex;flex-direction:column;gap:12px"></div>
+
+    <div class="callout">
+      <h3>Why three sets?</h3>
+      <p>So one strong student can't carry the team. If Player 1 writes everything, including the <code>printf</code>, the team test may pass. But Player 1's own test adds the Test ending after their code, so that output is printed twice and compiling may fail, and Player 2's test runs an empty part. <b>Each player's own tests only pass when each player did their own job.</b></p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="results">
+    <span class="eyebrow">3</span>
+    <h2>Results and score</h2>
+    <p>Students never see the hidden inputs or outputs. They get <b>one symbol per test</b>, for example <code>PPPF-PPPPP</code>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mark</th><th>Meaning</th><th>Usual cause</th></tr></thead>
+        <tbody>
+          <tr><td class="mark m-P">P</td><td>Passed</td><td>Output matches.</td></tr>
+          <tr><td class="mark m-F">F</td><td>Wrong answer</td><td>Wrong formula, forgot to round up, extra text printed.</td></tr>
+          <tr><td class="mark m-dash">-</td><td>No output</td><td>Nothing printed. Often Player 2's part is empty.</td></tr>
+          <tr><td class="mark m-C">C</td><td>Compile error</td><td>Typo, undeclared variable, the two halves don't fit together.</td></tr>
+          <tr><td class="mark m-T">T</td><td>Time limit</td><td>Too slow or an endless loop.</td></tr>
+          <tr><td class="mark m-X">X</td><td>Crashed</td><td>Divide by zero, bad array index, <code>scanf</code> without <code>&amp;</code>.</td></tr>
+          <tr><td class="mark m-E">E</td><td>Error exit</td><td><code>main</code> returned something other than 0.</td></tr>
+          <tr><td class="mark m-O">O</td><td>Output too long</td><td>Printing in an endless loop.</td></tr>
+          <tr><td class="mark m-S">S</td><td>Skipped</td><td>Judging ran out of time; the rest weren't run.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Spaces at the end of lines and blank lines at the very end don't matter. Everything else must match exactly.</p>
+    <p>A mission is <b>cleared only when all three sets pass every test</b>. If the team tests pass but a player's own tests don't, the result says so: <i>"but a player's own tests failed"</i>.</p>
+    <div class="two">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Difficulty</th><th>Points</th></tr></thead>
+          <tbody>
+            <tr><td>☆ 0 (example)</td><td class="num">0</td></tr>
+            <tr><td>★ 1</td><td class="num">5</td></tr>
+            <tr><td>★★ 2</td><td class="num">20</td></tr>
+            <tr><td>★★★ 3</td><td class="num">30</td></tr>
+            <tr><td>★★★★ 4</td><td class="num">60</td></tr>
+            <tr><td>★★★★★ 5</td><td class="num">120</td></tr>
+            <tr><td>6</td><td class="num">200</td></tr>
+            <tr><td>Special</td><td class="num">50 first clan, 20 after (full clear only)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <p>Score, progress, hints and the code being written are <b>shared by the whole clan</b>. A mission that is only partly passed still gives points: <b>the mission's points × the share of hidden tests passed in the clan's best Submit</b>, rounded down. Every test counts the same (team tests and each player's own tests). Submitting again only adds points if it beats the best Submit.</p>
+        <p>On the map, each co-op mission shows <b>[T] [1] [2]</b>: the team tests, Player 1's tests and Player 2's tests. Grey = not submitted yet, red = not all passed yet, green = all passed (it stays green).</p>
+        <p>Each clan has <b>3 hints</b> in total for the whole game. A problem can have a main hint plus one for each player. Once a hint is opened, everyone in the clan can read it.</p>
+        <p class="muted">สร้างบ้านง่าย ๆ is difficulty 2, so clearing it is worth 20 points. Passing 13 of its 20 hidden tests gives 20 × 13 ÷ 20 = 13 points.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="fields">
+    <span class="eyebrow">4</span>
+    <h2>Every admin box, and who sees it</h2>
+    <p>The editor has three tabs: <b>Global</b> (the whole problem), <b>Player 1</b> and <b>Player 2</b>. The same tabs appear on the student's problem sheet.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Box</th><th>Seen by</th><th>What it does</th><th>In สร้างบ้านง่าย ๆ</th></tr></thead>
+        <tbody>
+          <tr><td><b>Statement, Input, Output, Constraints</b></td><td><span class="seen all">everyone</span></td><td>The problem sheet: the story and the rules for the whole program.</td><td>The house story, 4 input lines, "the fewest Gold Ore".</td></tr>
+          <tr><td><b>Examples</b> (Global)</td><td><span class="seen all">everyone</span></td><td>Shown on the sheet <i>and</i> loaded into <b>Run examples</b>, so students can run them on the team program.</td><td><code>1 1 1 1 → 27</code>, <code>6 7 6 2 → 720</code>, <code>1 2 3 3 → 50</code></td></tr>
+          <tr><td><b>Player task, output, examples</b></td><td><span class="seen one">that player's tab</span></td><td>Explains one player's job. These examples are <b>display only</b>, never run, so you can write them however reads best.</td><td>Player 2: <code>n = 198, f = 3 → 50</code></td></tr>
+          <tr><td><b>Starter code</b></td><td><span class="seen one">that player</span></td><td>What the player's editor starts with. <code>#include</code> lines at the top are locked.</td><td>Player 1 gets <code>int w, l, h, f, n;</code> already declared.</td></tr>
+          <tr><td><b>Your solution</b></td><td><span class="seen no">admin only</span></td><td>Your finished answer for that player's part. Used by <b>Test</b>, <b>Check with my solution</b> and <b>Fill outputs</b>.</td><td>The full code in section 1.</td></tr>
+          <tr><td><b>Test ending</b> (Player 1 tab)</td><td><span class="seen no">admin only</span></td><td>Added <b>after</b> Player 1's code in Player 1's tests. Prints the hand-off, then closes <code>main()</code>.</td><td><code>printf("%d\n", n); return 0; }</code></td></tr>
+          <tr><td><b>Test start</b> (Player 2 tab)</td><td><span class="seen no">admin only</span></td><td>Added <b>before</b> Player 2's code in Player 2's tests. A correct copy of Player 1's part.</td><td>Declares the variables, reads input, sets <code>n</code>.</td></tr>
+          <tr><td><b>Hidden tests</b> (Team, P1, P2)</td><td><span class="seen no">admin only</span></td><td>The real judging. Up to 100 per set. Inputs always look like the real program input.</td><td>10 per set.</td></tr>
+          <tr><td><b>Hints</b> (main, P1, P2)</td><td><span class="seen one">after a clan spends a hint</span></td><td>Opened one at a time from the clan's 3 hints.</td><td>None yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="setup">
+    <span class="eyebrow">5</span>
+    <h2>Setting up a co-op problem</h2>
+    <p>Do it in this order. Each step depends on the one before.</p>
+    <ol class="steps">
+      <li><div><h3>Write the story and solve it yourself</h3><p>Global tab: statement, input, output, constraints, examples. Work an example out by hand before anything else, e.g. <code>1 1 1 1</code>: 6 blocks → 54 ingots → 27 ores.</p></div></li>
+      <li><div><h3>Choose where to cut, and the hand-off</h3><p>Pick a point in the solution where the work splits fairly, and decide exactly which variables cross it. Write their names into both player tasks. Here: Player 1 leaves <code>n</code> and <code>f</code>.</p></div></li>
+      <li><div><h3>Write the starter code</h3><p>Player 1 starts with <code>#include</code>, <code>int main(void) {</code> and the hand-off variables declared. Player 2's starter ends with <code>return 0;</code> and <code>}</code>. Declaring the hand-off in the starter means nobody can misspell it.</p></div></li>
+      <li><div><h3>Write your solution for both players</h3><p>Click <b>Start from the starter code</b>, then finish it like a good student would.</p></div></li>
+      <li><div><h3>Write the Test ending (Player 1)</h3><p>Print every hand-off variable, then close <code>main()</code>. Click <b>Test</b> under your Player 1 solution to compile them together.</p>
+<div class="piece"><div class="piece-head"><span class="dot h"></span>Test ending<span class="who">runs after Player 1</span></div><pre class="code" style="--start:6"><span class="l">    printf(<span class="s">"%d\n"</span>, n);</span><span class="l">    <span class="k">return</span> <span class="n">0</span>;</span><span class="l">}</span></pre></div></div></li>
+      <li><div><h3>Write the Test start (Player 2)</h3><p>A correct Player 1 part: includes, <code>main</code>, the same declarations, reading input, the hand-off set. It must end exactly where Player 1 would end. Click <b>Test</b> under your Player 2 solution.</p>
+<div class="piece"><div class="piece-head"><span class="dot h"></span>Test start<span class="who">runs before Player 2</span></div><pre class="code"><span class="l"><span class="m">#include</span> <span class="s">&lt;stdio.h&gt;</span></span><span class="l"></span><span class="l"><span class="k">int</span> main(<span class="k">void</span>) {</span><span class="l">    <span class="k">int</span> w, l, h, f, n;</span><span class="l">    scanf(<span class="s">"%d %d %d %d"</span>, &amp;w, &amp;l, &amp;h, &amp;f);</span><span class="l">    n = <span class="n">2</span> * (w * l + w * h + l * h) * <span class="n">9</span>;</span></pre></div></div></li>
+      <li><div><h3>Add hidden test inputs to all three sets</h3><p>Only the inputs, in the real input format (all 4 lines, even for Player 2's set). Cover the smallest and biggest values, every case (each Fortune level), and the tricky one (rounding up).</p></div></li>
+      <li><div><h3>Fill outputs from my solution</h3><p>The server runs your solutions and writes the expected outputs for you. No typing answers by hand.</p></div></li>
+      <li><div><h3>Check with my solution</h3><p>Runs your code against all three sets. Every set should say it passes all tests. If not, the details show the input, expected output and what your code printed.</p></div></li>
+      <li><div><h3>Play it as a clan</h3><p>Log in on the map as one of the clan's students (Admin → Clans lists who is in each clan), open the problem and submit. Use <b>Reset</b> on that clan afterwards so the test doesn't count.</p></div></li>
+    </ol>
+  </section>
+
+  <!-- 6 -->
+  <section id="rules">
+    <span class="eyebrow">6</span>
+    <h2>Rules that keep it working</h2>
+    <ul class="rules">
+      <li><span class="sym">Test ending: print(...) instead of printf(...)</span><span>A typo in a Test piece breaks every student's tests with <b>C</b>, even correct code. Always press <b>Test</b> after editing one.</span></li>
+      <li><span class="sym">error: 'r' undeclared</span><span>Code may only use variables that the code above it declared. Player 2 can use what Player 1 declared, but anything new, Player 2 declares in their own part.</span></li>
+      <li><span class="sym">error: redefinition of 'per'</span><span>The Test start must declare the hand-off and nothing more. If it also declares a helper variable that Player 2 is likely to declare, Player 2's correct code won't compile.</span></li>
+      <li><span class="sym">Team passes, Player 1 fails</span><span>Player 1's tests feed the <b>full</b> input, so Player 1 must read all of it, including values only Player 2 uses (here <code>f</code>).</span></li>
+      <li><span class="sym">Examples break the constraints</span><span>Every example and hidden test must obey the constraints you wrote (the old <code>15 4 11 1</code> broke <code>w ≤ l</code>).</span></li>
+      <li><span class="sym">Rounding cases missing</span><span>If a common mistake still passes every test, add a test that catches it. Here: Fortune III with an odd total, where <code>n / 4</code> isn't whole.</span></li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section id="teach">
+    <span class="eyebrow">7</span>
+    <h2>Teaching students</h2>
+    <p>Students don't need to know about Test pieces. They need to know four things: <b>you share one program</b>, <b>agree on the hand-off</b>, <b>do only your own half</b>, and <b>each half is tested on its own</b>.</p>
+    <h3>A 5-minute explanation you can give</h3>
+    <ol class="script">
+      <li>"You and your partner write <b>one</b> C program. Player 1 writes the start, Player 2 writes the rest. The computer joins them, so Player 2's first line comes right after Player 1's last line."</li>
+      <li>"Read the <b>Global</b> tab together first. Then each of you reads your own tab, <b>Player 1</b> or <b>Player 2</b>. It says exactly what you must do and which variables you hand over."</li>
+      <li>"Agree on the hand-off before typing. In this problem, Player 1 must leave the number of ingots in <code>n</code>, and the Fortune level in <code>f</code>. Use these exact names."</li>
+      <li>"Press <b>Run examples</b> to try the whole program on the examples. You can add your own inputs there too."</li>
+      <li>"<b>Submit</b> tests the team program <i>and</i> each of your halves separately. If one player does both halves, the other half's tests fail. So each of you writes your own part."</li>
+      <li>"You get one letter per test. P is good. C means it doesn't compile. F means a wrong answer. Fix it and submit again. Hints are shared by the clan, and you only get 3, so use them carefully."</li>
+    </ol>
+    <div class="callout">
+      <h3>Try it live with the class</h3>
+      <p>Log in as a student, open สร้างบ้านง่าย ๆ and submit Player 2's first idea, <code>printf("%d\n", n / (f + 1));</code>. Show the <b>F</b> marks, then ask the class: "Why is 49 ores not enough for 198 ingots with Fortune III?" Then fix it together and submit again.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+// The three test programs, built from the same pieces the server uses.
+const P1 = [
+  '<span class="m">#include</span> <span class="s">&lt;stdio.h&gt;</span>', '',
+  '<span class="k">int</span> main(<span class="k">void</span>) {',
+  '    <span class="k">int</span> w, l, h, f, n;',
+  '    scanf(<span class="s">"%d %d %d %d"</span>, &amp;w, &amp;l, &amp;h, &amp;f);',
+  '    n = <span class="n">2</span> * (w * l + w * h + l * h) * <span class="n">9</span>;',
+];
+const P2 = [
+  '    <span class="k">int</span> per = f + <span class="n">1</span>;',
+  '    printf(<span class="s">"%d\\n"</span>, (n + per - <span class="n">1</span>) / per);',
+  '    <span class="k">return</span> <span class="n">0</span>;', '}',
+];
+const ENDING = ['    printf(<span class="s">"%d\\n"</span>, n);', '    <span class="k">return</span> <span class="n">0</span>;', '}'];
+const START = P1;   // the Test start is a correct copy of Player 1's part
+const SETS = {
+  team: {
+    formula: [['p1', "Player 1's code"], ['p2', "Player 2's code"]],
+    segs: [['p1', 'Player 1 (student)', P1], ['p2', 'Player 2 (student)', P2]],
+    why: 'Checks the whole program, exactly as the problem sheet describes it. Input <code>1 2 3 3</code> → expected <code>50</code>.',
+  },
+  p1: {
+    formula: [['p1', "Player 1's code"], ['h', 'Test ending']],
+    segs: [['p1', 'Player 1 (student)', P1], ['h', 'Test ending (admin)', ENDING]],
+    why: 'Checks only Player 1. Player 2\'s code is not used at all, so Player 1 has to get <code>n</code> right alone. Input <code>1 2 3 3</code> → expected <code>198</code> (the value of n).',
+  },
+  p2: {
+    formula: [['h', 'Test start'], ['p2', "Player 2's code"]],
+    segs: [['h', 'Test start (admin)', START], ['p2', 'Player 2 (student)', P2]],
+    why: 'Checks only Player 2. Player 1\'s code is replaced by your correct Test start, so Player 2 is tested even if Player 1 is stuck. Input <code>1 2 3 3</code> → expected <code>50</code>.',
+  },
+};
+function lines(arr) { return arr.map((x) => `<span class="l">${x}</span>`).join(''); }
+function show(name) {
+  const s = SETS[name];
+  let start = 0;
+  const segs = s.segs.map(([cls, label, code]) => {
+    const html = `<div class="seg ${cls}"><span class="seg-label">${label}</span><pre class="code" style="--start:${start}">${lines(code)}</pre></div>`;
+    start += code.length;
+    return html;
+  }).join('');
+  const formula = s.formula.map(([cls, t]) => `<span class="chip ${cls}">${t}</span>`).join('<span>+</span>');
+  document.getElementById('set-view').innerHTML =
+    `<div class="formula">${formula}<span>=</span><span class="chip">main.c</span></div>`
+    + `<div class="program">${segs}</div><p class="set-why">${s.why}</p>`;
+  for (const b of document.querySelectorAll('[data-set]')) b.setAttribute('aria-selected', String(b.dataset.set === name));
+}
+for (const b of document.querySelectorAll('[data-set]')) b.addEventListener('click', () => show(b.dataset.set));
+show('team');
+</script>
+</body>
+</html>

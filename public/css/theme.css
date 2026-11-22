@@ -25,20 +25,20 @@
 
 :root {
   /* difficulty levels: 1-5 green -> red, 6 purple, special gradient */
-  --lv1: #16a34a; --lv2: #65a30d; --lv3: #ca8a04; --lv4: #ea580c; --lv5: #dc2626; --lv6: #9333ea;
+  --lv0: #64748b; --lv1: #16a34a; --lv2: #65a30d; --lv3: #ca8a04; --lv4: #ea580c; --lv5: #dc2626; --lv6: #9333ea;
   /* co-op player colors */
   --p1: #0284c7; --p2: #db2777;
   --lv-special: linear-gradient(120deg, #db2777, #7c3aed 50%, #0284c7);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --lv1: #4ade80; --lv2: #a3e635; --lv3: #facc15; --lv4: #fb923c; --lv5: #f87171; --lv6: #c084fc;
+    --lv0: #94a3b8; --lv1: #4ade80; --lv2: #a3e635; --lv3: #facc15; --lv4: #fb923c; --lv5: #f87171; --lv6: #c084fc;
     --p1: #7dd3fc; --p2: #f9a8d4;
     --lv-special: linear-gradient(120deg, #f9a8d4, #c4b5fd 50%, #7dd3fc);
   }
 }
 :root[data-theme="dark"] {
-  --lv1: #4ade80; --lv2: #a3e635; --lv3: #facc15; --lv4: #fb923c; --lv5: #f87171; --lv6: #c084fc;
+  --lv0: #94a3b8; --lv1: #4ade80; --lv2: #a3e635; --lv3: #facc15; --lv4: #fb923c; --lv5: #f87171; --lv6: #c084fc;
   --p1: #7dd3fc; --p2: #f9a8d4;
   --lv-special: linear-gradient(120deg, #f9a8d4, #c4b5fd 50%, #7dd3fc);
 }
@@ -157,7 +157,7 @@ kbd {
 .level .stars { letter-spacing: 1px; font-family: "Segoe UI Symbol", system-ui, sans-serif; line-height: 1; }
 .level .stars .off { opacity: .22; }
 .level .lv-name { font-weight: 700; font-size: .78em; letter-spacing: .08em; text-transform: uppercase; }
-.lv-1 { color: var(--lv1); } .lv-2 { color: var(--lv2); } .lv-3 { color: var(--lv3); }
+.lv-0 { color: var(--lv0); } .lv-1 { color: var(--lv1); } .lv-2 { color: var(--lv2); } .lv-3 { color: var(--lv3); }
 .lv-4 { color: var(--lv4); } .lv-5 { color: var(--lv5); } .lv-6 { color: var(--lv6); }
 .lv-special .stars, .lv-special .lv-name {
   background: var(--lv-special); -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -173,6 +173,14 @@ kbd {
 .badge.hard { color: var(--hard); background: var(--hard-bg); }
 
 .ok { color: var(--ok); } .err { color: var(--err); } .warn { color: var(--warn); }
+
+/* the logged-in student (js/clan.js -> Clan.mountAccount) */
+.account { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.acc-who { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.acc-who b { font-weight: 700; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 15rem; }
+.acc-clan { display: inline-flex; align-items: center; gap: 5px; font-size: .76rem; font-weight: 600; color: color-mix(in srgb, var(--clan, var(--accent)) 72%, var(--text)); }
+.acc-clan img { width: 16px; height: 16px; padding: 2px; border-radius: 4px; background: var(--clan, var(--accent)); }
+.acc-out { font-size: .8rem; padding: 4px 10px; }
 
 /* toast */
 .toast {

@@ -1,5 +1,72 @@
+# ---------- website ----------
+# GCC download (setup-gcc.bat installs it again)
 gcc/
+
+# admin password: never on GitHub (it is printed in the server window and kept only on this computer)
+data/admin-password.txt
 
 # live camp state (clan progress, scores, hints and shared code)
 data/clans.json
 data/clan-code.json
+data/timer.json
+
+# student logins: names, password hashes and who is logged in
+data/students.json
+data/sessions.json
+
+# leftovers: the old single problems file after the move to data/problems/, and half-written saves
+data/problems.json.bak
+*.tmp
+
+# ---------- Unity (Game/<project>/) ----------
+# Unity rebuilds all of these when the project is opened
+Game/*/[Ll]ibrary/
+Game/*/[Tt]emp/
+Game/*/[Oo]bj/
+Game/*/[Bb]uild/
+Game/*/[Bb]uilds/
+Game/*/[Ll]ogs/
+Game/*/[Uu]ser[Ss]ettings/
+Game/*/[Mm]emoryCaptures/
+Game/*/[Rr]ecordings/
+Game/*/Assets/Plugins/Editor/JetBrains*
+
+# code-editor files Unity generates
+Game/*/.vs/
+Game/*/.vscode/
+Game/*/.idea/
+Game/*/.gradle/
+Game/*/ExportedObj/
+Game/*/.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# crash reports and build output
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.unitypackage
+*.app
+Game/*/Assets/StreamingAssets/aa/*
+
+# ---------- system ----------
+.DS_Store
+Thumbs.db
+desktop.ini

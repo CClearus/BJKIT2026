@@ -1,0 +1,77 @@
+{
+  "id": "pdbfb54fc8e",
+  "number": "2",
+  "name": "สร้างบ้านง่าย ๆ",
+  "difficulty": "2",
+  "madeBy": [
+    {
+      "name": "เพ่วิศวกานต์",
+      "avatar": "uploads/a1405ac1d803f3d99306a3d5d4d00bb0.jpg"
+    },
+    {
+      "name": "เกลาหลังปูนปั้น",
+      "avatar": "uploads/5542b54c19745ede4b3a08c4e5b76050.png"
+    }
+  ],
+  "timeLimit": 1,
+  "memoryLimit": 256,
+  "statement": "<p>เพ่วิศวกานต์กับเชฟอชิกำลังสำรวจทะเลทราย และต้องการสร้างบ้านหนึ่งหลังเพื่อไม่ให้โดนหมูตี บ้านเป็นรูปทรงสี่เหลี่ยมมุมฉาก และต้องสร้างด้วย Gold Block ทั้งหลัง โชคดีที่เพ่วิศวกานต์ไปขโมย Diamond Pickaxe ที่มีความทนทานไม่จำกัด และมี Enchantment Fortune มาจาก Villager ได้</p><p>ทั้งสองจึงต้องลงไปขุด Gold Ore ในถ้ำที่มีทองอยู่ไม่จำกัด คุณในฐานะวิศวนิวเคลียร์วรินทร จะต้องหาว่าเพ่วิศวกานต์กับเชฟอชิต้องขุด Gold Ore ทั้งหมดอย่างน้อยกี่บล็อก จึงจะได้ทองพอสร้างบ้านได้สำเร็จ</p><p><img src=\"uploads/4f9f88a8078cc22101c5bfb7fccc918c.png\" alt=\"Gold Ingot 9 ชิ้น ประกอบเป็น Gold Block 1 ก้อน\" style=\"width: 47.5%; display: block; margin-left: auto; margin-right: auto\"></p><p style=\"text-align: center\">วิธีประกอบ Gold Block: ใช้ Gold Ingot 9 ชิ้น ต่อ Gold Block 1 ก้อน</p><p>ขุด Gold Ore 1 บล็อก จะได้ Gold Ingot ตามระดับ Fortune ของ Pickaxe ดังนี้</p><table style=\"margin-left: auto; margin-right: auto\"><thead><tr><th>ระดับ Enchantment</th><th>Gold Ingot ที่ได้ต่อ 1 บล็อก</th></tr></thead><tbody><tr><td style=\"text-align: center\"><b>Fortune I</b></td><td style=\"text-align: center\"><b>2 ชิ้น</b></td></tr><tr><td style=\"text-align: center\"><b>Fortune II</b></td><td style=\"text-align: center\"><b>3 ชิ้น</b></td></tr><tr><td style=\"text-align: center\"><b>Fortune III</b></td><td style=\"text-align: center\"><b>4 ชิ้น</b></td></tr></tbody></table><p>ถ้าทองที่ขุดได้เกินกว่าที่ใช้ ทองที่เหลือเก็บไว้ได้ แต่ทองต้องไม่ขาด</p>",
+  "input": "<p><b>บรรทัดที่ 1:</b> จำนวนเต็ม $w$ แทนความกว้างของบ้าน<br><b>บรรทัดที่ 2:</b> จำนวนเต็ม $l$ แทนความยาวของบ้าน<br><b>บรรทัดที่ 3:</b> จำนวนเต็ม $h$ แทนความสูงของบ้าน<br><b>บรรทัดที่ 4:</b> จำนวนเต็ม $f$ แทนระดับ Fortune ของ Pickaxe (1 = Fortune I, 2 = Fortune II, 3 = Fortune III)</p>",
+  "output": "<p>จำนวนเต็มหนึ่งจำนวน คือจำนวน Gold Ore ที่น้อยที่สุดที่เพ่วิศวกานต์และเชฟอชิต้องขุด</p>",
+  "constraints": "<p>$0 &lt; w \\le l \\le 100$</p><p>$0 &lt; h &lt; 256$</p><p>$1 \\le f \\le 3$</p>",
+  "hint": "",
+  "p1Hint": "",
+  "p2Hint": "",
+  "mode": "coop",
+  "shared": "",
+  "p1Task": "<p>ก่อนเริ่มขุด เพ่วิศวกานต์และเชฟอชิต้องคำนวณปริมาณทองทั้งหมดที่ต้องใช้สร้างบ้าน โดยบ้านใช้ Gold Block เท่ากับพื้นที่ผิวของทรงสี่เหลี่ยมมุมฉาก โดยพื้นที่ผิว $1$ ตารางหน่วย ใช้ Gold Block $1$ ก้อน พื้นที่ผิวคำนวณได้จากสูตร</p><p style=\"text-align: center\">$$2 \\times (w \\times l + w \\times h + l \\times h)$$</p>",
+  "p2Task": "<p>ให้คำนวณว่าต้องขุด Gold Ore อย่างน้อยกี่บล็อกจากการคำนวนของ จึงจะได้ทองพอสร้างบ้านหลังนี้</p><p>ถ้าหารไม่ลงตัว ต้องขุดเพิ่มอีก 1 บล็อก Gold Ingot ที่เหลือไม่ต้องใช้</p>",
+  "p1Starter": "#include <stdio.h>\n\nint main(void) {\n\n\n",
+  "p2Starter": "\n\n    return 0;\n}\n",
+  "p1Output": "<p>ไม่ต้องแสดงผลใด ๆ ให้สร้างตัวแปร <code>n</code>&nbsp;ที่เก็บจำนวน Gold Ingot ทั้งหมดที่ต้องใช้</p>",
+  "p2Output": "<p>แสดงจำนวน Gold Ore ที่ต้องขุด เป็นจำนวนเต็มหนึ่งจำนวน</p>",
+  "p1Samples": [
+    {
+      "input": "1\n2\n3\n1\n",
+      "output": "n = 198\n"
+    },
+    {
+      "input": "5\n8\n6\n2\n",
+      "output": "n = 2124\n"
+    }
+  ],
+  "p2Samples": [
+    {
+      "input": "n = 54, f = 1\n",
+      "output": "27\n"
+    },
+    {
+      "input": "n = 2124, f = 2\n",
+      "output": "708\n"
+    },
+    {
+      "input": "n = 198, f = 3\n",
+      "output": "50\n"
+    }
+  ],
+  "p1TestHelper": "    printf(\"%d\\n\", n);\n    return 0;\n}\n",
+  "p2TestHelper": "#include <stdio.h>\n\nint main(void) {\n    int w, l, h, f, n,r;\n    scanf(\"%d %d %d %d\", &w, &l, &h, &f);\n    n = 2 * (w * l + w * h + l * h) * 9;\n",
+  "p1Solution": "#include <stdio.h>\n\nint main(void) {\n    int w, l, h, f, n;\n    // Player 1: อ่าน w, l, h, f แล้วเก็บจำนวน Gold Ingot ทั้งหมดไว้ใน n\n    scanf(\"%d %d %d %d\", &w, &l, &h, &f);\n    n = 2 * (w * l + w * h + l * h) * 9;\n",
+  "p2Solution": "\n    int per = f + 1;\n    printf(\"%d\\n\", (n + per - 1) / per);\n    return 0;\n}\n",
+  "samples": [
+    {
+      "input": "1\n1\n1\n1\n",
+      "output": "27\n"
+    },
+    {
+      "input": "6\n7\n6\n2\n",
+      "output": "720\n"
+    },
+    {
+      "input": "1\n2\n3\n3\n",
+      "output": "50\n"
+    }
+  ],
+  "createdAt": "2026-11-20T10:48:43.865Z",
+  "updatedAt": "2026-11-20T23:04:14.430Z"
+}

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/editor.css">
+<style>
+  /* A free C editor + compiler for trying code (opened from the admin page). Not tied to a problem. */
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  .topbar .tag { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 999px; }
+  .topbar .hint { color: var(--muted); font-size: .82rem; }
+
+  .play-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 34%); }
+  .play-code { min-height: 0; border-right: 1px solid var(--border); background: var(--code-bg); }
+  .play-code .CodeMirror, .play-code textarea { height: 100%; width: 100%; }
+  .play-side { min-height: 0; display: grid; grid-template-rows: minmax(100px, 32%) minmax(0, 1fr); }
+  .play-side section { min-height: 0; display: flex; flex-direction: column; background: var(--code-bg); }
+  .play-side section + section { border-top: 1px solid var(--border); }
+  .play-label { display: flex; align-items: center; gap: 8px; padding: 10px 14px 6px; font-size: .8rem; font-weight: 600; color: var(--muted); }
+  .play-label .spacer { flex: 1; }
+  .play-label .ok { color: var(--ok); } .play-label .err { color: var(--err); }
+  .play-label .time { font: 500 .75rem var(--font-mono); }
+  #play-stdin { flex: 1; min-height: 0; resize: none; border: 0; border-radius: 0; padding: 4px 14px 14px; background: transparent; color: var(--text); font: 13px/1.55 var(--font-mono); }
+  #play-stdin:focus { outline: none; box-shadow: inset 2px 0 0 var(--accent); }
+  .play-out { flex: 1; min-height: 0; overflow: auto; padding: 4px 14px 14px; }
+  .play-out h4 { margin: 8px 0 4px; font-size: .75rem; font-weight: 600; color: var(--muted); }
+  .play-out h4:first-child { margin-top: 0; }
+  .play-out pre { margin: 0 0 8px; white-space: pre-wrap; word-break: break-word; font: 13px/1.55 var(--font-mono); }
+  .play-out pre.dim { color: var(--muted); }
+  .play-out .empty { color: var(--muted); font-size: .85rem; margin: 0; }
+  @media (max-width: 860px) {
+    body { overflow: auto; }
+    .play-body { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 60vh) minmax(320px, auto); }
+    .play-code { border-right: 0; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./">C <span>Practice</span></a>
+  <span class="tag">Playground</span>
+  <span class="hint">Saved in this browser as you type</span>
+  <span class="spacer"></span>
+  <button type="button" id="play-reset" title="Replace the code with the starter program">Reset code</button>
+  <button type="button" class="primary" id="play-run" title="Compile and run (Ctrl+Enter or F5)">&#9654; Run <kbd>Ctrl</kbd>+<kbd>Enter</kbd></button>
+  <a class="btn" href="admin.html">⚙ Admin</a>
+</header>
+
+<main class="play-body">
+  <div class="play-code"><textarea id="play-code-src" spellcheck="false" aria-label="Code"></textarea></div>
+  <div class="play-side">
+    <section>
+      <label class="play-label" for="play-stdin">Input (stdin)</label>
+      <textarea id="play-stdin" spellcheck="false"></textarea>
+    </section>
+    <section>
+      <div class="play-label"><span>Result</span><span class="spacer"></span><span id="play-verdict" role="status"></span><span class="time" id="play-time"></span></div>
+      <div class="play-out" id="play-out"><p class="empty">Press Run to compile and run your code.</p></div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/match-highlighter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/keymap/sublime.min.js"></script>
+<script src="js/code-editor.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+const PLAY_KEY = 'admin:playground';   // same key the admin pop-up used, so earlier code carries over
+const PLAY_STARTER = `#include <stdio.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) == 1) {
+        printf("You typed %d\\n", n);
+    } else {
+        printf("Hello!\\n");
+    }
+    return 0;
+}
+`;
+let busy = false, saveTimer;
+
+function loadSaved() { try { return JSON.parse(localStorage.getItem(PLAY_KEY)) || {}; } catch { return {}; } }
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(PLAY_KEY, JSON.stringify({ code: editor.getValue(), stdin: $('play-stdin').value })); } catch {}
+  }, 300);
+}
+
+const saved = loadSaved();
+$('play-code-src').value = saved.code ?? PLAY_STARTER;
+$('play-stdin').value = saved.stdin ?? '5\n';
+const editor = createCodeEditor($('play-code-src'), { lang: 'c', onRun: run, onChange: save });
+editor.refresh();
+editor.focus();
+
+function verdict(text, cls = '', time = '') {
+  $('play-verdict').textContent = text;
+  $('play-verdict').className = cls;
+  $('play-time').textContent = time;
+}
+function section(title, text, cls = '') {
+  if (title) {
+    const h = document.createElement('h4');
+    h.textContent = title;
+    $('play-out').appendChild(h);
+  }
+  const pre = document.createElement('pre');
+  pre.textContent = text;
+  if (cls) pre.className = cls;
+  $('play-out').appendChild(pre);
+}
+
+async function run() {
+  if (busy) return;
+  busy = true;
+  $('play-run').disabled = true;
+  $('play-out').textContent = '';
+  verdict('Compiling…');
+  try {
+    const res = await fetch('api/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: editor.getValue(), inputs: [$('play-stdin').value], lang: 'c' }),
+    });
+    const r = await res.json();
+    if (!r.ok) {
+      if (r.stage === 'compile') {
+        verdict('Compile error', 'err');
+        section('Compiler output', r.compileOutput || '(no message)', 'err');
+      } else {
+        verdict('Error', 'err');
+        section('', r.message || 'Something went wrong.', 'err');
+      }
+      return;
+    }
+    const x = r.runs[0];
+    const problem = x.timedOut ? `Time limit (${r.timeLimitMs / 1000} s)`
+      : x.truncated ? 'Printed too much'
+      : x.exitCode !== 0 ? `Runtime error (exit code ${x.exitCode})` : null;
+    verdict(problem || 'Finished', problem ? 'err' : 'ok', `${x.timeMs} ms`);
+    if (r.compileOutput.trim()) section('Warnings', r.compileOutput, 'warn');
+    section('Output', (x.stdout || '(no output)') + (x.truncated ? '\n[cut off: too long]' : ''), x.stdout ? '' : 'dim');
+    if (x.stderr) section('stderr', x.stderr, 'err');
+  } catch {
+    verdict('Error', 'err');
+    section('', 'Could not reach the server. Is it running? (start.bat)', 'err');
+  } finally {
+    busy = false;
+    $('play-run').disabled = false;
+  }
+}
+
+$('play-run').addEventListener('click', run);
+$('play-reset').addEventListener('click', () => {
+  if (!confirm('Replace your code with the starter program?')) return;
+  editor.setValue(PLAY_STARTER);
+  save();
+  editor.focus();
+});
+$('play-stdin').addEventListener('input', save);
+$('play-stdin').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+});
+// F5 runs the code instead of reloading the page (Ctrl+R still reloads)
+document.addEventListener('keydown', (e) => { if (e.key === 'F5' && !e.ctrlKey) { e.preventDefault(); run(); } });
+// another playground tab saved newer code: pick it up when this tab isn't being typed in
+window.addEventListener('storage', (e) => {
+  if (e.key !== PLAY_KEY || document.hasFocus()) return;
+  const s = loadSaved();
+  if (typeof s.code === 'string' && s.code !== editor.getValue()) editor.setValue(s.code);
+  if (typeof s.stdin === 'string') $('play-stdin').value = s.stdin;
+});
+</script>
+</body>
+</html>

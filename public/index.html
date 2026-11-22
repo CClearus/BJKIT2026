@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Sarabun:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <link rel="stylesheet" href="css/theme.css">
+<script src="js/loader.js"></script>
 <style>
   :root {
     --panel-w: clamp(340px, 28vw, 420px);
@@ -30,9 +31,36 @@
   }
 
   body { overflow: hidden; }
+
+  /* ---------- top bar: links (left), time left (center), the student and their clan (right) ---------- */
+  :root { --nav-h: 72px; }
+  .topnav {
+    position: relative; z-index: 5; height: var(--nav-h); padding: 0 20px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px;
+    background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
+  }
+  .tn-left { justify-self: start; display: flex; align-items: center; gap: 2px; }
+  .tn-left a.link { font-size: .85rem; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 8px; }
+  .tn-left a.link:hover { color: var(--text); background: var(--accent-soft); }
+  .tn-right { justify-self: end; display: flex; align-items: center; gap: 16px; min-width: 0; }
+  /* the clan chip already shows the clan, so the account only needs the student's name */
+  .tn-right:has(.clan-chip:not([hidden])) .acc-clan { display: none; }
+  .tn-right .acc-out { white-space: nowrap; }
+
+  /* the big countdown */
+  .timer { display: flex; flex-direction: column; align-items: center; gap: 3px; line-height: 1; }
+  .timer small { font: 700 .62rem var(--font-ui); letter-spacing: .26em; text-transform: uppercase; color: var(--muted); }
+  .timer b { font: 700 2.3rem/1 var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: .02em; transition: color .3s; }
+  .timer.paused b, .timer.ready b { opacity: .55; }
+  .timer.off b { color: var(--muted); opacity: .45; }
+  .timer.low b { color: var(--err); animation: tick 1s ease-in-out infinite; }
+  .timer.ended b { color: var(--err); font-size: 1.9rem; letter-spacing: .08em; }
+  .timer.ended small { color: var(--err); }
+  @keyframes tick { 50% { opacity: .55; } }
+
   /* data-panel="float": a card in the bottom-right corner of the map.
      data-panel="full":  a full-height column on the right side. */
-  .home { position: relative; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .home { position: relative; height: calc(100% - var(--nav-h)); display: grid; grid-template-columns: minmax(0, 1fr); }
   .home[data-panel="full"] { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
 
   /* ---------- the map (blank for now: the world goes in #map-canvas) ---------- */
@@ -50,22 +78,14 @@
     background: radial-gradient(120% 90% at 45% 50%, transparent 55%, color-mix(in srgb, var(--map-bg) 85%, black 15%) 140%);
   }
   #map-canvas { position: absolute; inset: 0; }
-  .map-chip {
-    position: absolute; z-index: 2; display: flex; align-items: center; gap: 4px; padding: 4px;
-    background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(10px);
-    border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow);
-  }
-  .map-chip.bl { bottom: 16px; left: 16px; }
 
-  /* the clan chip, top-right of the map: logo, name and the clan's score */
+  /* the clan chip, right of the top bar: logo, name and the clan's score */
   .clan-chip {
-    position: absolute; z-index: 3; top: 16px; right: 20px; display: flex; align-items: center; gap: 12px;
-    padding: 6px 16px 6px 6px; border-radius: 14px; border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(12px); box-shadow: var(--shadow);
-    animation: panelIn .45s cubic-bezier(.2, .8, .2, 1);
+    display: flex; align-items: center; gap: 12px; min-width: 0;
+    padding: 5px 16px 5px 5px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2);
   }
   .clan-logo {
-    flex: none; width: 46px; height: 46px; padding: 7px; border-radius: 11px; display: block;
+    flex: none; width: 44px; height: 44px; padding: 7px; border-radius: 11px; display: block;
     background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .09) 0 2px, transparent 2px 7px), var(--clan);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2), 0 6px 16px color-mix(in srgb, var(--clan) 35%, transparent);
   }
@@ -77,8 +97,6 @@
   .clan-score small { font: 600 .6rem var(--font-ui); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
   .clan-score b.bump { animation: scoreBump .7s cubic-bezier(.2, .8, .2, 1); }
   @keyframes scoreBump { 35% { transform: scale(1.25); } }
-  .map-chip a.link { font-size: .85rem; color: var(--muted); text-decoration: none; padding: 5px 10px; border-radius: 8px; }
-  .map-chip a.link:hover { color: var(--text); background: var(--accent-soft); }
 
   /* ---------- the mission panel ---------- */
   .panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); }
@@ -128,6 +146,7 @@
   .rating button:hover { transform: scale(1.18); }
   .rating button.on { color: var(--c); text-shadow: 0 0 10px color-mix(in srgb, var(--c) 45%, transparent); }
   .rating .sp { font-size: 1.1rem; margin-right: 6px; padding-right: 9px; border-right: 1px solid var(--border); border-radius: 0; }
+  .rating .ex { font-size: 1.15rem; margin-right: 6px; padding-right: 9px; border-right: 1px solid var(--border); border-radius: 0; }
   .rating .sp.on { background: var(--lv-special); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
   .seg { flex: 1; min-width: 180px; max-width: 230px; display: flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
   .seg button { flex: 1; border: 0; padding: 4px 8px; font-size: .8rem; color: var(--muted); background: transparent; border-radius: 7px; }
@@ -215,7 +234,19 @@
   .tk-wrap.special:focus-visible .stub .no, .tk-wrap.special:focus-visible .stub .num { background: none; color: #fff; }
   .tk-main { position: relative; min-width: 0; padding: 10px 14px 10px 16px; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
   .tk-name { font: 600 .98rem/1.3 var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 92px; }
-  .tk-meta { display: flex; align-items: center; gap: 8px; }
+  .tk-meta { display: flex; align-items: center; gap: 8px; padding-right: 92px; }
+  /* [T][1][2]: team tests, Player 1's tests, Player 2's tests (same look as the judge's result boxes)
+     grey = not submitted yet · red = submitted, not all passed yet · green = all passed (stays green) */
+  .suites { display: inline-flex; gap: 3px; }
+  .suites span {
+    --c: var(--muted);
+    display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em; height: 1.6em; padding: 0 2px;
+    border-radius: 4px; font: 700 .66rem/1 var(--font-mono);
+    color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  }
+  .suites span.none { opacity: .6; }
+  .suites span.pass { --c: var(--ok); }
+  .suites span.fail { --c: var(--err); }
   .tk-meta .level { font-size: .76rem; }
   /* special missions: which clan cleared it first */
   .first { display: inline-flex; align-items: center; gap: 4px; font: 600 .66rem var(--font-ui); color: var(--muted); }
@@ -240,6 +271,12 @@
 
   @media (max-width: 820px) {
     body { overflow: auto; }
+    /* phone: stacked — the timer on top, then the student and clan, then the links */
+    .topnav { height: auto; padding: 10px 16px; grid-template-columns: minmax(0, 1fr); row-gap: 8px; justify-items: center; }
+    .timer { order: -1; }
+    .tn-right { justify-self: center; gap: 10px; max-width: 100%; }
+    .tn-left { justify-self: center; order: 1; }
+    .acc-who b { max-width: 9rem; }
     .home, .home[data-panel="full"] { height: auto; min-height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: 34vh auto; }
     .home .panel, .home[data-panel="float"] .panel {
       position: static; width: auto; height: auto; min-height: 0; border: 0; border-top: 1px solid var(--border);
@@ -257,19 +294,28 @@
 </style>
 </head>
 <body>
-<div class="home" id="home" data-panel="float">
-  <section class="map" aria-label="Map">
-    <!-- The map is blank for now. Draw the world inside #map-canvas. -->
-    <div id="map-canvas"></div>
+<header class="topnav">
+  <nav class="tn-left" aria-label="Links">
+    <a class="link" href="guide.html">GCC guide</a>
+    <a class="link" href="admin.html">⚙ Admin</a>
+  </nav>
+  <div class="timer off" id="timer" role="timer" aria-live="off">
+    <small id="timer-label">Time left</small>
+    <b id="timer-left">--:--</b>
+  </div>
+  <div class="tn-right">
+    <div id="account" aria-label="Logged in as"></div>
     <div class="clan-chip" id="clan-chip" hidden>
       <img class="clan-logo" id="clan-logo" alt="">
       <div class="clan-name"><small id="clan-no"></small><b id="clan-name"></b></div>
       <div class="clan-score"><b id="clan-score">0</b><small>Score</small></div>
     </div>
-    <nav class="map-chip bl" aria-label="Links">
-      <a class="link" href="guide.html">GCC guide</a>
-      <a class="link" href="admin.html">⚙ Admin</a>
-    </nav>
+  </div>
+</header>
+<div class="home" id="home" data-panel="float">
+  <section class="map" aria-label="Map">
+    <!-- The map is blank for now. Draw the world inside #map-canvas. -->
+    <div id="map-canvas"></div>
   </section>
 
   <aside class="panel" id="panel" aria-label="Missions">
@@ -306,8 +352,10 @@ const lvColor = (lv) => (lv === 'special' ? 'var(--sp1)' : `var(--lv${lv})`);
 /* ---------- progress ---------- */
 // Playing for a clan: everything comes from the clan (shared by all its members).
 // Otherwise: what this browser saved.
+Clan.requireLogin();
+Clan.mountAccount($('account'));
 const CLAN = Clan.id();
-let clan = null;     // { score, solved: Set, progress, started: Set }
+let clan = null;    // { score, solved: Set, progress, started: Set }
 let firsts = {};     // special missions: id -> clan that cleared it first
 const isSolved = (p) => (clan ? clan.solved.has(p.id) : store.get('solved:' + p.id) === '1');
 // Best Submit so far: { passed, total } over all of the problem's hidden tests (team + both players).
@@ -318,6 +366,28 @@ function progressOf(p) {
     if (r && r.total > 0) return r;
   } catch {}
   return null;
+}
+// Best result of each test set (team / p1 / p2) over all Submits: { passed, total }, or nothing yet.
+function suiteResults(p) {
+  if (clan) return (clan.suites || {})[p.id] || {};
+  try { return JSON.parse(store.get('suites:' + p.id)) || {}; } catch { return {}; }
+}
+const SUITE_INFO = { team: ['T', 'Team tests'], p1: ['1', "Player 1's tests"], p2: ['2', "Player 2's tests"] };
+function suiteBoxes(p) {
+  const box = document.createElement('span');
+  box.className = 'suites';
+  const best = suiteResults(p);
+  for (const s of p.suites || []) {
+    const r = best[s];
+    const b = document.createElement('span');
+    const [label, name] = SUITE_INFO[s];
+    b.textContent = label;
+    if (!r || !r.total) { b.className = 'none'; b.title = `${name}: not submitted yet`; }
+    else if (r.passed >= r.total) { b.className = 'pass'; b.title = `${name}: all ${r.total} passed`; }
+    else { b.className = 'fail'; b.title = `${name}: best ${r.passed} / ${r.total} passed`; }
+    box.appendChild(b);
+  }
+  return box;
 }
 const hasWork = (p) => (clan ? clan.started.has(p.id)
   : [`code:${p.id}:p1`, `code:${p.id}:p2`, `code:${p.id}:c`].some((k) => store.get(k) != null));
@@ -347,28 +417,66 @@ async function renderClanChip() {
   shownScore = clan.score;
 }
 
+/* ---------- the camp timer (top bar) ---------- */
+// The server sends how much time is left; the page counts down from that on its own and checks
+// back every 15 s (so a pause or a new time from the admin shows up quickly).
+let timerState = null, timerFetchedAt = 0;
+async function loadTimer() {
+  try {
+    const r = await fetch('api/timer', { cache: 'no-store' });
+    if (r.ok) { timerState = await r.json(); timerFetchedAt = performance.now(); }
+  } catch {}
+  renderTimer();
+}
+function timerLeft() {
+  if (!timerState) return 0;
+  return timerState.status === 'running' ? Math.max(0, timerState.leftMs - (performance.now() - timerFetchedAt)) : timerState.leftMs;
+}
+function formatTime(ms, withHours) {
+  const s = Math.ceil(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const two = (n) => String(n).padStart(2, '0');
+  return withHours ? `${h}:${two(m)}:${two(sec)}` : `${two(m)}:${two(sec)}`;
+}
+const TIMER_LABELS = { running: 'Time left', paused: 'Paused', ready: 'Starts soon', ended: 'Submitting closed', off: 'Time left' };
+function renderTimer() {
+  const box = $('timer');
+  const s = timerState || { status: 'off', leftMs: 0, durationMs: 0 };
+  const left = timerLeft();
+  const status = s.status === 'running' && left <= 0 ? 'ended' : s.status;
+  const text = status === 'off' ? '--:--' : status === 'ended' ? "TIME'S UP" : formatTime(left, s.durationMs >= 3600000);
+  box.className = 'timer ' + status + (status === 'running' && left < 5 * 60000 ? ' low' : '');
+  $('timer-label').textContent = TIMER_LABELS[status] || 'Time left';
+  if ($('timer-left').textContent !== text) $('timer-left').textContent = text;
+}
+setInterval(renderTimer, 250);
+setInterval(() => { if (!document.hidden) loadTimer(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadTimer(); });
+loadTimer();
+
 /* ---------- state ---------- */
 let problems = [];
 const filter = { level: store.get('home:level') || 'all', status: store.get('home:status') || 'all' };
 
 /* ---------- filters ---------- */
-// Special missions come first, then 1 to 6 stars.
-const ORDER = ['special', '1', '2', '3', '4', '5', '6'];
+// Example missions (0 stars) come first, then special missions, then 1 to 6 stars.
+const ORDER = ['0', 'special', '1', '2', '3', '4', '5', '6'];
 const levelOf = (p) => PV.normalizeLevel(p.difficulty);
 const has = (lv) => problems.some((p) => levelOf(p) === lv);
 
-// Five stars (a sixth once a 6-star mission exists), plus ◆ once a special mission exists.
+// Five stars (a sixth once a 6-star mission exists), plus ◆ once a special mission exists
+// and ☆ once an example mission exists.
 // Clicking the 3rd star shows level 3; clicking the lit star again shows every level.
 function renderChips() {
   const box = $('rating');
   box.textContent = '';
-  const values = [...(has('special') ? ['special'] : []), '1', '2', '3', '4', '5', ...(has('6') ? ['6'] : [])];
+  const values = [...(has('0') ? ['0'] : []), ...(has('special') ? ['special'] : []), '1', '2', '3', '4', '5', ...(has('6') ? ['6'] : [])];
   for (const v of values) {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.level = v;
-    b.className = v === 'special' ? 'sp' : '';
-    b.textContent = v === 'special' ? '◆' : '★';
+    b.className = v === 'special' ? 'sp' : v === '0' ? 'ex' : '';
+    b.textContent = v === 'special' ? '◆' : v === '0' ? '☆' : '★';
     b.title = PV.levelName(v);
     b.setAttribute('aria-label', PV.levelName(v));
     b.addEventListener('click', () => setFilter('level', filter.level === v ? 'all' : v));
@@ -384,7 +492,8 @@ function renderChips() {
 function paintStars(level) {
   for (const b of $('rating').children) {
     const v = b.dataset.level;
-    const on = level !== 'all' && (level === 'special' ? v === 'special' : v !== 'special' && Number(v) <= Number(level));
+    const on = level !== 'all' && (level === 'special' || level === '0' ? v === level
+      : v !== 'special' && v !== '0' && Number(v) <= Number(level));
     b.classList.toggle('on', on);
     b.style.setProperty('--c', level === 'all' ? '' : lvColor(level));
     b.setAttribute('aria-pressed', String(filter.level === v));
@@ -425,6 +534,7 @@ function ticket(p, i) {
   a.querySelector('.num').textContent = p.number || '?';
   a.querySelector('.tk-name').textContent = p.name || 'Untitled';
   a.querySelector('.tk-meta').appendChild(PV.levelElement(lv));
+  if ((p.suites || []).length) a.querySelector('.tk-meta').appendChild(suiteBoxes(p));
   if (firsts[p.id]) {
     // which clan got there first (filled in once the clan list has loaded)
     const f = document.createElement('span');
@@ -508,8 +618,8 @@ async function load() {
     $('tickets').innerHTML = '<p class="list-empty"><b>Server offline</b>Start it with start.bat, then refresh.</p>';
     return;
   }
-  // a saved filter for a 6-star / special level that no longer has missions
-  if ((filter.level === '6' || filter.level === 'special') && !has(filter.level)) filter.level = 'all';
+  // a saved filter for a 6-star / special / example level that no longer has missions
+  if (['6', 'special', '0'].includes(filter.level) && !has(filter.level)) filter.level = 'all';
   renderChips();
   renderTickets();
   renderClanChip();
@@ -519,7 +629,7 @@ async function load() {
 window.addEventListener('pageshow', (e) => { if (e.persisted) load(); });
 // Clanmates clear missions too: refresh the clan's progress every 10 s while the map is open.
 let lastClanJson = '';
-const clanJson = () => JSON.stringify([clan && clan.score, clan && [...clan.solved], clan && clan.progress, clan && [...clan.started], firsts]);
+const clanJson = () => JSON.stringify([clan && clan.score, clan && [...clan.solved], clan && clan.progress, clan && clan.suites, clan && [...clan.started], firsts]);
 setInterval(async () => {
   if (document.hidden || !problems.length) return;
   await loadClan();
