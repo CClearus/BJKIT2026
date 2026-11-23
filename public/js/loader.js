@@ -78,10 +78,41 @@
     setTimeout(() => el.remove(), FADE_MS + 50);
   }
 
+  // A page can keep the loader up for something slow of its own (the main page: the Unity board):
+  //   PageLoader.holdUntil(promise, maxMs)  -> stays until the promise settles (or maxMs from the start)
+  //   PageLoader.progress(0..1)              -> thin bar under the GIF
+  const startedAt = Date.now();
+  const holds = [];
+  let holdCapMs = MAX_SHOW_MS;
+  function holdUntil(promise, maxMs) {
+    holds.push(Promise.resolve(promise).catch(() => {}));
+    holdCapMs = Math.max(holdCapMs, maxMs || 0);
+  }
+  let bar = null;
+  function progress(p) {
+    if (hidden) return;
+    if (!bar) {
+      const s = document.createElement('style');
+      s.textContent = `
+        .page-loader { grid-template-rows: auto auto; align-content: center; gap: 18px; }
+        .page-loader .pl-bar { width: min(240px, 60vw); height: 5px; border-radius: 99px; overflow: hidden;
+          background: color-mix(in srgb, currentColor 14%, transparent); color: var(--muted, #888); }
+        .page-loader .pl-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: currentColor; transition: width .25s ease; }`;
+      document.head.appendChild(s);
+      bar = document.createElement('div');
+      bar.className = 'pl-bar';
+      bar.appendChild(document.createElement('i'));
+      el.appendChild(bar);
+    }
+    bar.firstChild.style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%';
+  }
+
   Promise.race([
     Promise.all([pageLoaded, Promise.race([gifSettled, wait(GIF_WAIT_MS)]), wait(MIN_SHOW_MS)]),
     wait(MAX_SHOW_MS),
-  ]).then(hide);
+  ])
+    .then(() => Promise.race([Promise.all(holds), wait(Math.max(0, holdCapMs - (Date.now() - startedAt)))]))
+    .then(hide);
 
-  window.PageLoader = { hide };
+  window.PageLoader = { hide, holdUntil, progress };
 })();

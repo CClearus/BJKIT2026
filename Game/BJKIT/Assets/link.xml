@@ -1,0 +1,7 @@
+<!-- Keep WebGLInput in web builds: Scripts/Board/WebPageFriendly.cs sets it by reflection
+     (so the board doesn't capture the website's keyboard), and code stripping can't see that use. -->
+<linker>
+  <assembly fullname="UnityEngine.WebGLModule">
+    <type fullname="UnityEngine.WebGLInput" preserve="all" />
+  </assembly>
+</linker>

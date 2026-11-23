@@ -31,7 +31,7 @@ public static class HdriBlackBackground
 
         // 2. Cameras draw solid black instead of the sky.
         int count = 0;
-        foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include))
         {
             Undo.RecordObject(cam, "HDRI Black Background");
             cam.clearFlags = CameraClearFlags.SolidColor;

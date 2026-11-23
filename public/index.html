@@ -100,6 +100,22 @@
   }
   #map-canvas { position: absolute; inset: 0; }
 
+  /* the board game (Unity web build from Game/BJKIT, files in public/game/) */
+  .map.has-board::after { display: none; }
+  #board-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+  .board-load {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: min(320px, 70%); display: grid; gap: 8px; text-align: center;
+    font-size: .85rem; color: var(--muted);
+  }
+  .board-load .bar { height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; }
+  .board-load .bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: currentColor; transition: width .2s; }
+  .board-load.failed .bar { display: none; }
+  /* after the GIF loading screen goes, the board fades in from black */
+  .board-fade { position: absolute; inset: 0; background: #000; pointer-events: none; transition: opacity 1.4s ease; }
+  .board-fade.out { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { .board-fade { transition-duration: .2s; } }
+
   /* the clan chip, right of the top bar: logo, name and the clan's score */
   .clan-chip {
     display: flex; align-items: center; gap: 12px; min-width: 0;
@@ -336,9 +352,9 @@
     </div>
   </div>
 </header>
-<div class="home" id="home" data-panel="float">
+<div class="home" id="home" data-panel="full">
   <section class="map" aria-label="Map">
-    <!-- The map is blank for now. Draw the world inside #map-canvas. -->
+    <!-- The board game (Unity web build in game/) is loaded into #map-canvas by the script at the end of this page. -->
     <div id="map-canvas"></div>
   </section>
 
@@ -684,6 +700,76 @@ setInterval(async () => {
   renderClanChip();
 }, 10000);
 load();
+</script>
+
+<script>
+/* ---------- the board game in #map-canvas ----------
+   Unity web build of Game/BJKIT, made in Unity with Tools > Board > Build Web (into website).
+   game/build.json lists the build's file names; without it (not built yet) the map just stays empty.
+   The GIF loading screen (js/loader.js) stays up until the board is really on screen, with a progress bar
+   under the GIF (at most 90 s; after that the map shows its own bar). "Really on screen" = after Unity's
+   "Made with Unity" splash has faded out: the game calls window.BoardPage.ready() then
+   (Game/BJKIT/Assets/Plugins/WebGL/BoardBridge.jslib + Scripts/Board/BoardPageSignal.cs). */
+(async function loadBoard() {
+  let boardSettled;
+  const boardReady = new Promise((r) => (boardSettled = r));
+  if (window.PageLoader && PageLoader.holdUntil) PageLoader.holdUntil(boardReady, 90000);
+  window.BoardPage = { ready: () => boardSettled() };
+
+  let build;
+  try {
+    const r = await fetch('game/build.json', { cache: 'no-store' });
+    if (!r.ok) return boardSettled();
+    build = await r.json();
+  } catch { return boardSettled(); }
+
+  const host = document.getElementById('map-canvas');
+  host.innerHTML = '<canvas id="board-canvas" tabindex="-1" aria-label="Board"></canvas>'
+    + '<div class="board-fade" id="board-fade"></div>'
+    + '<div class="board-load" id="board-load"><span>Loading the board…</span><div class="bar"><i></i></div></div>';
+  const canvas = document.getElementById('board-canvas');
+  const loading = document.getElementById('board-load');
+  const fade = document.getElementById('board-fade');
+  // fade in from black once the GIF loading screen has gone (its own fade is ~0.3 s)
+  boardReady.then(() => setTimeout(() => {
+    fade.classList.add('out');
+    setTimeout(() => fade.remove(), 1600);
+  }, 350));
+  const fail = (e) => {
+    console.error('Board failed to load:', e);
+    fade.remove();
+    boardSettled();
+    loading.classList.add('failed');
+    loading.querySelector('span').textContent = 'The board could not load. Refresh the page to try again.';
+  };
+
+  const script = document.createElement('script');
+  script.src = 'game/Build/' + build.loader;
+  script.onerror = fail;
+  script.onload = () => {
+    createUnityInstance(canvas, {
+      dataUrl: 'game/Build/' + build.data,
+      frameworkUrl: 'game/Build/' + build.framework,
+      codeUrl: 'game/Build/' + build.code,
+      streamingAssetsUrl: 'game/StreamingAssets',
+      companyName: 'BJKIT', productName: build.productName || 'Board', productVersion: build.productVersion || '1',
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),   // sharp enough, lighter on student laptops
+    }, (p) => {
+      loading.querySelector('i').style.width = Math.round(p * 100) + '%';
+      if (window.PageLoader && PageLoader.progress) PageLoader.progress(p);
+    })
+      .then((instance) => {
+        window.boardGame = instance;   // later: instance.SendMessage(...) to move clan pawns
+        loading.remove();
+        host.closest('.map').classList.add('has-board');
+        // The loader fades when the game says the splash is over (BoardPage.ready). Safety net for a build
+        // without that signal: the Unity splash lasts a few seconds, so give up waiting after 12 s.
+        setTimeout(boardSettled, 12000);
+      })
+      .catch(fail);
+  };
+  document.body.appendChild(script);
+})();
 </script>
 </body>
 </html>

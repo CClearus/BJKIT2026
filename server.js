@@ -11,6 +11,7 @@ const fsp = fs.promises;
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const { spawn } = require('child_process');
 const clans = require('./clans');
 const OutputMatch = require('./public/js/output-match.js');   // same checker the pages use
@@ -489,6 +490,7 @@ const MIME = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
   '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff': 'font/woff', '.woff2': 'font/woff2',
   '.mp4': 'video/mp4', '.webm': 'video/webm',
+  '.wasm': 'application/wasm', '.data': 'application/octet-stream',   // Unity WebGL board (public/game/)
 };
 
 function sendJson(res, status, obj) {
@@ -554,11 +556,43 @@ async function serveMedia(req, res, file) {
   fs.createReadStream(file, { start, end }).on('error', () => res.destroy()).pipe(res);
 }
 
-function serveStatic(pathname, res, extraHeaders) {
+function serveStatic(pathname, res, extraHeaders, req) {
   if (pathname.endsWith('/')) pathname += 'index.html';
   const file = path.normalize(path.join(PUBLIC_DIR, pathname));
   if (!file.startsWith(PUBLIC_DIR + path.sep)) { res.writeHead(403); return res.end('Forbidden'); }
+  if (pathname.startsWith('/game/Build/')) return serveGameFile(req, res, file);
   return serveFile(res, file, extraHeaders);
+}
+
+// Unity board build (public/game/Build/, made in Unity: Tools > Board > Build Web).
+// - Files are named by their content hash (a rebuild = new names), so browsers can keep them for good
+//   instead of every student downloading the whole game on each page load.
+// - About 50 MB raw: gzipped once (kept in memory) it is roughly a quarter of that over the camp Wi-Fi.
+const gzipCache = new Map();   // file -> { mtimeMs, gz: Promise<Buffer> }
+async function serveGameFile(req, res, file) {
+  let stat;
+  try { stat = await fsp.stat(file); } catch { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
+  const headers = {
+    'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+    Vary: 'Accept-Encoding',
+  };
+  const wantsGzip = /\bgzip\b/.test((req && req.headers['accept-encoding']) || '');
+  if (!wantsGzip) return serveFile(res, file, headers);
+  let hit = gzipCache.get(file);
+  if (!hit || hit.mtimeMs !== stat.mtimeMs) {
+    hit = { mtimeMs: stat.mtimeMs, gz: fsp.readFile(file).then((buf) => new Promise((ok, fail) => zlib.gzip(buf, { level: 6 }, (e, out) => (e ? fail(e) : ok(out))))) };
+    gzipCache.set(file, hit);
+  }
+  try {
+    const gz = await hit.gz;
+    res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip', 'Content-Length': gz.length });
+    res.end(gz);
+  } catch {
+    gzipCache.delete(file);
+    serveFile(res, file, headers);
+  }
 }
 
 function imageType(buf) {
@@ -997,7 +1031,7 @@ async function handle(req, res) {
     return res.end();
   }
   const noStore = LOGIN_PAGES.has(pathname) || pathname === '/login.html' ? { 'Cache-Control': 'no-store' } : undefined;
-  return serveStatic(decodeURIComponent(pathname), res, noStore);
+  return serveStatic(decodeURIComponent(pathname), res, noStore, req);
 }
 
 loadProblems();

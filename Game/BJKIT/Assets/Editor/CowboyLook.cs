@@ -9,7 +9,12 @@ using UnityEngine.Rendering.Universal;
 [InitializeOnLoad]
 public static class CowboyLook
 {
-    const string AppliedKey = "CowboyLook_Applied_v1";
+    // v4: real desert noon instead of a movie "yellow filter":
+    //   white-hot hard sun + blue sky fill in the shadows + sandy ground bounce.
+    //   The colour comes from the lighting contrast and the materials, not from a tint over everything.
+    //   (v1 too red, v2 washed out, v3 monochrome yellow.)
+    // v5: same look, brighter overall (v4 read too dark).
+    const string AppliedKey = "CowboyLook_Applied_v5";
     const string ProfilePath = "Assets/Settings/CowboyProfile.asset";
 
     static CowboyLook()
@@ -30,47 +35,59 @@ public static class CowboyLook
         if (sky != null)
         {
             Undo.RecordObject(sky, "Cowboy Look");
-            if (sky.HasProperty("_Exposure")) sky.SetFloat("_Exposure", 0.75f);
-            if (sky.HasProperty("_Tint")) sky.SetColor("_Tint", new Color(0.62f, 0.52f, 0.42f)); // warm/dusty
+            if (sky.HasProperty("_Exposure")) sky.SetFloat("_Exposure", 1f);
+            if (sky.HasProperty("_Tint")) sky.SetColor("_Tint", new Color(0.5f, 0.5f, 0.5f)); // neutral; only used for reflections now
             EditorUtility.SetDirty(sky);
         }
 
-        RenderSettings.ambientMode = AmbientMode.Skybox;
-        RenderSettings.ambientIntensity = 0.7f;
+        // Ambient = what fills the shadows. Desert shadows are lit by the blue sky from above
+        // and by warm light bouncing off the sand from below.
+        RenderSettings.ambientMode = AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = new Color(0.60f, 0.72f, 0.92f);     // blue sky fill (bright desert sky)
+        RenderSettings.ambientEquatorColor = new Color(0.68f, 0.68f, 0.66f); // horizon
+        RenderSettings.ambientGroundColor = new Color(0.64f, 0.52f, 0.38f);  // sand bounce (sand reflects a lot)
+        RenderSettings.ambientIntensity = 1f;
         RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
         RenderSettings.reflectionIntensity = 0.5f;
 
         // Dusty desert haze
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.ExponentialSquared;
-        RenderSettings.fogColor = new Color(0.36f, 0.24f, 0.15f);
-        RenderSettings.fogDensity = 0.008f;
+        RenderSettings.fogColor = new Color(0.66f, 0.70f, 0.76f); // pale blue heat haze (distance goes cooler, not yellower)
+        RenderSettings.fogDensity = 0.003f;
 
         // ---------- Sun: low, warm, golden hour ----------
         Light sun = RenderSettings.sun;
         if (sun == null)
-            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            foreach (var l in Object.FindObjectsByType<Light>())
                 if (l.type == LightType.Directional) { sun = l; break; }
 
         if (sun != null)
         {
             Undo.RecordObject(sun, "Cowboy Look");
             Undo.RecordObject(sun.transform, "Cowboy Look");
-            sun.color = new Color(1f, 0.72f, 0.45f);
-            sun.intensity = 1.3f;
+            sun.color = new Color(1f, 0.95f, 0.86f); // almost white, just a hint of warmth
+            sun.intensity = 2.7f;
             sun.shadows = LightShadows.Soft;
-            sun.shadowStrength = 0.85f;
-            sun.transform.rotation = Quaternion.Euler(22f, -35f, 0f); // low angle = long shadows
+            sun.shadowStrength = 0.75f;                                // crisp shadows, but sky fill still reads in them
+            sun.transform.rotation = Quaternion.Euler(48f, -35f, 0f);  // high sun = harsh "noon showdown" light
             RenderSettings.sun = sun;
             EditorUtility.SetDirty(sun);
         }
 
-        // ---------- Cameras: black bg + post processing on ----------
-        foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        // ---------- Cameras: blue desert sky (DesertSky.mat via Skybox component) + post processing on ----------
+        // RenderSettings.skybox (HDRI) stays as-is for reflections; only the camera background uses DesertSky.
+        var desertSky = AssetDatabase.LoadAssetAtPath<Material>("Assets/Skyblokc/DesertSky.mat");
+        foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include))
         {
             Undo.RecordObject(cam, "Cowboy Look");
-            cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = Color.black;
+            if (desertSky != null)
+            {
+                cam.clearFlags = CameraClearFlags.Skybox;
+                var skyComp = cam.GetComponent<Skybox>();
+                if (skyComp == null) skyComp = Undo.AddComponent<Skybox>(cam.gameObject);
+                skyComp.material = desertSky;
+            }
             var data = cam.GetUniversalAdditionalCameraData();
             if (data != null)
             {
@@ -90,47 +107,51 @@ public static class CowboyLook
         }
 
         var tone = Get<Tonemapping>(profile);
-        tone.mode.Override(TonemappingMode.ACES);
+        tone.mode.Override(TonemappingMode.Neutral); // ACES pushed the oranges into deep red
 
+        // Grade stays almost neutral: the warm-sun / blue-shadow contrast does the work.
         var ca = Get<ColorAdjustments>(profile);
-        ca.postExposure.Override(-0.35f);
-        ca.contrast.Override(18f);
-        ca.saturation.Override(-12f);
-        ca.colorFilter.Override(new Color(1f, 0.9f, 0.78f));
+        ca.postExposure.Override(0.45f);
+        ca.contrast.Override(10f); // high contrast was crushing the shadows dark
+        ca.saturation.Override(14f);
+        ca.colorFilter.Override(Color.white);
 
         var wb = Get<WhiteBalance>(profile);
-        wb.temperature.Override(28f);
-        wb.tint.Override(6f);
+        wb.temperature.Override(5f);
+        wb.tint.Override(0f);
 
-        var split = Get<SplitToning>(profile);
-        split.shadows.Override(new Color(0.42f, 0.30f, 0.22f));   // brown shadows
-        split.highlights.Override(new Color(1f, 0.78f, 0.52f));   // golden highlights
-        split.balance.Override(-15f);
+        // No global tints: these turned the whole frame one colour.
+        Get<SplitToning>(profile).active = false;
+        Get<ShadowsMidtonesHighlights>(profile).active = false;
 
-        var smh = Get<ShadowsMidtonesHighlights>(profile);
-        smh.shadows.Override(new Vector4(1f, 0.93f, 0.85f, -0.05f));
-        smh.highlights.Override(new Vector4(1f, 0.95f, 0.85f, -0.08f));
-
+        // Bloom only on genuinely bright spots (sun-hit highlights), not on the whole ground.
         var bloom = Get<Bloom>(profile);
-        bloom.intensity.Override(0.35f);
-        bloom.threshold.Override(1.1f);
-        bloom.tint.Override(new Color(1f, 0.8f, 0.6f));
+        bloom.intensity.Override(0.4f);
+        bloom.threshold.Override(1.5f); // raised with the brighter sun so the ground doesn't glow
+        bloom.scatter.Override(0.65f);
+        bloom.tint.Override(new Color(1f, 0.96f, 0.9f));
 
         var vig = Get<Vignette>(profile);
-        vig.intensity.Override(0.32f);
-        vig.smoothness.Override(0.45f);
-        vig.color.Override(new Color(0.12f, 0.06f, 0.02f));
+        vig.intensity.Override(0.15f);
+        vig.smoothness.Override(0.5f);
+        vig.color.Override(Color.black);
 
         var grain = Get<FilmGrain>(profile);
         grain.type.Override(FilmGrainLookup.Thin1);
-        grain.intensity.Override(0.2f);
+        grain.intensity.Override(0.1f);
+
+        // Depth of field OFF: the camera sits ~90 m from the playfield, where a real lens
+        // shows no blur, and blurring the play area just hides gameplay.
+        // (The Default Volume Profile had a broken Gaussian range that blurred everything.)
+        var dof = Get<DepthOfField>(profile);
+        dof.mode.Override(DepthOfFieldMode.Off);
 
         EditorUtility.SetDirty(profile);
         AssetDatabase.SaveAssets();
 
         // Assign to the global volume (create one if missing)
         Volume vol = null;
-        foreach (var v in Object.FindObjectsByType<Volume>(FindObjectsSortMode.None))
+        foreach (var v in Object.FindObjectsByType<Volume>())
             if (v.isGlobal) { vol = v; break; }
         if (vol == null)
         {
@@ -146,7 +167,7 @@ public static class CowboyLook
         EditorUtility.SetDirty(vol);
 
         DynamicGI.UpdateEnvironment();
-        foreach (SceneView sv in SceneView.sceneViews) { sv.sceneViewState.showSkybox = false; sv.Repaint(); }
+        foreach (SceneView sv in SceneView.sceneViews) { sv.sceneViewState.showSkybox = true; sv.Repaint(); }
         EditorSceneManager.MarkAllScenesDirty();
         Debug.Log("[Cowboy Look] Applied. Press Ctrl+S to save the scene.");
     }

@@ -15,10 +15,10 @@ MonoBehaviour:
   active: 1
   temperature:
     m_OverrideState: 1
-    m_Value: 28
+    m_Value: 5
   tint:
     m_OverrideState: 1
-    m_Value: 6
+    m_Value: 0
 --- !u!114 &-1005910863277872750
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -31,7 +31,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 558a8e2b6826cf840aae193990ba9f2e, type: 3}
   m_Name: ShadowsMidtonesHighlights
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.ShadowsMidtonesHighlights
-  active: 1
+  active: 0
   shadows:
     m_OverrideState: 1
     m_Value: {x: 1, y: 0.93, z: 0.85, w: -0.05}
@@ -74,6 +74,7 @@ MonoBehaviour:
   - {fileID: 1349339319941092202}
   - {fileID: 4720836165002918836}
   - {fileID: 5592692878587524412}
+  - {fileID: 5282317939460119460}
 --- !u!114 &1349339319941092202
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -92,19 +93,19 @@ MonoBehaviour:
     m_Value: 1
   threshold:
     m_OverrideState: 1
-    m_Value: 1.1
+    m_Value: 1.5
   intensity:
     m_OverrideState: 1
-    m_Value: 0.35
+    m_Value: 0.4
   scatter:
     m_OverrideState: 1
-    m_Value: 0.7
+    m_Value: 0.65
   clamp:
     m_OverrideState: 1
     m_Value: 65472
   tint:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 0.8, b: 0.6, a: 1}
+    m_Value: {r: 1, g: 0.96, b: 0.9, a: 1}
   highQualityFiltering:
     m_OverrideState: 1
     m_Value: 0
@@ -139,19 +140,19 @@ MonoBehaviour:
   active: 1
   postExposure:
     m_OverrideState: 1
-    m_Value: -0.35
+    m_Value: 0.45
   contrast:
     m_OverrideState: 1
-    m_Value: 18
+    m_Value: 10
   colorFilter:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 0.9, b: 0.78, a: 1}
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
   hueShift:
     m_OverrideState: 1
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: -12
+    m_Value: 14
 --- !u!114 &2048018694870223547
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -164,16 +165,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70afe9e12c7a7ed47911bb608a23a8ff, type: 3}
   m_Name: SplitToning
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.SplitToning
-  active: 1
+  active: 0
   shadows:
     m_OverrideState: 1
-    m_Value: {r: 0.42, g: 0.3, b: 0.22, a: 1}
+    m_Value: {r: 0.46, g: 0.48, b: 0.55, a: 1}
   highlights:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 0.78, b: 0.52, a: 1}
+    m_Value: {r: 0.82, g: 0.72, b: 0.38, a: 1}
   balance:
     m_OverrideState: 1
-    m_Value: -15
+    m_Value: 25
 --- !u!114 &4206530828612982927
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -229,17 +230,63 @@ MonoBehaviour:
   active: 1
   color:
     m_OverrideState: 1
-    m_Value: {r: 0.12, g: 0.06, b: 0.02, a: 1}
+    m_Value: {r: 0, g: 0, b: 0, a: 1}
   center:
     m_OverrideState: 1
     m_Value: {x: 0.5, y: 0.5}
   intensity:
     m_OverrideState: 1
-    m_Value: 0.32
+    m_Value: 0.15
   smoothness:
     m_OverrideState: 1
-    m_Value: 0.45
+    m_Value: 0.5
   rounded:
+    m_OverrideState: 1
+    m_Value: 0
+--- !u!114 &5282317939460119460
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c01700fd266d6914ababb731e09af2eb, type: 3}
+  m_Name: DepthOfField
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DepthOfField
+  active: 1
+  mode:
+    m_OverrideState: 1
+    m_Value: 0
+  gaussianStart:
+    m_OverrideState: 1
+    m_Value: 40
+  gaussianEnd:
+    m_OverrideState: 1
+    m_Value: 120
+  gaussianMaxRadius:
+    m_OverrideState: 1
+    m_Value: 0.7
+  highQualitySampling:
+    m_OverrideState: 1
+    m_Value: 1
+  focusDistance:
+    m_OverrideState: 1
+    m_Value: 10
+  aperture:
+    m_OverrideState: 1
+    m_Value: 5.6
+  focalLength:
+    m_OverrideState: 1
+    m_Value: 50
+  bladeCount:
+    m_OverrideState: 1
+    m_Value: 5
+  bladeCurvature:
+    m_OverrideState: 1
+    m_Value: 1
+  bladeRotation:
     m_OverrideState: 1
     m_Value: 0
 --- !u!114 &5592692878587524412
@@ -260,7 +307,7 @@ MonoBehaviour:
     m_Value: 0
   intensity:
     m_OverrideState: 1
-    m_Value: 0.2
+    m_Value: 0.1
   response:
     m_OverrideState: 1
     m_Value: 0.8
