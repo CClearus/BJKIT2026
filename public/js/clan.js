@@ -34,10 +34,36 @@
       return listPromise;
     },
     async info(id = this.id()) { return id ? (await this.list()).find((c) => c.id === id) || null : null; },
-    // { clan, score, solved[], progress{}, started[], hintsLeft, revealed[], firsts{} }
+    // { clan, score, solved[], progress{}, suites{}, started[], hintsLeft, revealed[], firsts{}, resetAt }
     async state() {
       const r = await fetch('api/clan/state', { cache: 'no-store' });
-      return r.json();
+      const s = await r.json();
+      this.checkReset(s.resetAt);
+      return s;
+    },
+
+    // A page can set Clan.onReset (e.g. the editor reloads so it starts from the starter code).
+    onReset: null,
+    // The admin reset this clan (resetAt changed since this browser last looked): forget this
+    // browser's own copy of code, solved marks, progress and hints. Returns true when it cleared.
+    checkReset(resetAt) {
+      const clan = this.id();
+      if (!clan || !resetAt) return false;
+      const key = 'reset-at:' + clan;
+      let seen = 0;
+      try { seen = Number(localStorage.getItem(key)) || 0; } catch {}
+      if (seen === resetAt) return false;
+      try {
+        const drop = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (/^(code:|solved:|hint:|progress:|suites:)|^hints-left$/.test(k)) drop.push(k);
+        }
+        for (const k of drop) localStorage.removeItem(k);
+        localStorage.setItem(key, String(resetAt));
+      } catch {}
+      if (typeof this.onReset === 'function') this.onReset();
+      return true;
     },
 
     // For pages only students use (map, problems). Any call the server answers with

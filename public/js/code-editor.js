@@ -89,7 +89,7 @@
 
   /**
    * Turn a <textarea> into the code editor.
-   * Returns { getValue, setValue, setLang, focus, refresh } so the page works with or without CodeMirror.
+   * Returns { getValue, setValue, setLang, focus, refresh, setReadOnly } so the page works with or without CodeMirror.
    */
   function createCodeEditor(textarea, { lang = 'c', onRun = () => {}, onChange = () => {} } = {}) {
     if (!window.CodeMirror) {
@@ -102,6 +102,7 @@
         getValue: () => textarea.value,
         setValue: (v) => { textarea.value = v; },
         setLang() {}, focus: () => textarea.focus(), refresh() {},
+        setReadOnly: (b) => { textarea.readOnly = !!b; },
       };
     }
 
@@ -156,6 +157,7 @@
       setLang: (l) => cm.setOption('mode', modeFor(l)),
       focus: () => cm.focus(),
       refresh: () => cm.refresh(),
+      setReadOnly: (b) => cm.setOption('readOnly', !!b),
     };
   }
 

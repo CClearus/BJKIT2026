@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.png">
 <title>C Practice</title>
 <script>
   // Old links (./#problem=id) open the problem straight in the editor.
@@ -39,9 +40,21 @@
     display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px;
     background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
   }
-  .tn-left { justify-self: start; display: flex; align-items: center; gap: 2px; }
-  .tn-left a.link { font-size: .85rem; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 8px; }
-  .tn-left a.link:hover { color: var(--text); background: var(--accent-soft); }
+  .tn-left { justify-self: start; display: flex; align-items: center; gap: 10px; }
+  /* the clan's score and money, top-left */
+  .stat {
+    display: flex; align-items: center; gap: 8px; padding: 4px 16px 4px 6px; border-radius: 14px;
+    background: var(--surface-2); border: 1px solid var(--border); line-height: 1.05;
+  }
+  .stat img { width: 38px; height: 38px; display: block; flex: none; }
+  .stat b { display: block; font: 700 1.3rem var(--font-mono); font-variant-numeric: tabular-nums; color: var(--stat-c); }
+  .stat small { font: 700 .58rem var(--font-ui); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  .stat.score { --stat-c: #b7791f; }
+  .stat.money { --stat-c: #2f855a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .stat.score { --stat-c: #f6c445; } :root:not([data-theme="light"]) .stat.money { --stat-c: #86c96b; } }
+  :root[data-theme="dark"] .stat.score { --stat-c: #f6c445; }
+  :root[data-theme="dark"] .stat.money { --stat-c: #86c96b; }
+  .stat b.bump { animation: scoreBump .7s cubic-bezier(.2, .8, .2, 1); }
   .tn-right { justify-self: end; display: flex; align-items: center; gap: 16px; min-width: 0; }
   /* the clan chip already shows the clan, so the account only needs the student's name */
   .tn-right:has(.clan-chip:not([hidden])) .acc-clan { display: none; }
@@ -302,7 +315,16 @@
 </head>
 <body>
 <header class="topnav">
-  <nav class="tn-left" aria-label="Links"></nav>
+  <div class="tn-left">
+    <div class="stat score" id="stat-score" title="Your clan's points from the missions you passed" hidden>
+      <img src="icons/score.png" alt="">
+      <div><b id="clan-score">0</b><small>Points</small></div>
+    </div>
+    <div class="stat money" id="stat-money" title="Your clan's money: every point you earn also gives 1 money" hidden>
+      <img src="icons/money.png" alt="">
+      <div><b id="clan-money">0</b><small>Money</small></div>
+    </div>
+  </div>
   <div class="timer off" id="timer" role="timer" aria-live="off">
     <small id="timer-label">Time left</small>
     <b id="timer-left">--:--</b>
@@ -413,8 +435,22 @@ async function loadClan() {
   } catch { clan = null; }
 }
 // Top-right of the map: the clan's logo, name and score (the only place a score is shown).
-let shownScore = null;
+// Top-left: the clan's score and money (a number bumps when it changes).
+const shownStats = {};
+function renderStats() {
+  for (const [key, id] of [['score', 'clan-score'], ['money', 'clan-money']]) {
+    const box = $('stat-' + key);
+    box.hidden = !clan;
+    if (!clan) continue;
+    const value = clan[key] ?? 0;
+    const el = $(id);
+    el.textContent = value;
+    if (shownStats[key] != null && value !== shownStats[key]) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+    shownStats[key] = value;
+  }
+}
 async function renderClanChip() {
+  renderStats();
   const info = clan && await Clan.info(clan.clan);
   $('clan-chip').hidden = !info;
   if (!info) return;
@@ -636,7 +672,7 @@ async function load() {
 window.addEventListener('pageshow', (e) => { if (e.persisted) load(); });
 // Clanmates clear missions too: refresh the clan's progress every 10 s while the map is open.
 let lastClanJson = '';
-const clanJson = () => JSON.stringify([clan && clan.score, clan && [...clan.solved], clan && clan.progress, clan && clan.suites, clan && [...clan.started], firsts]);
+const clanJson = () => JSON.stringify([clan && clan.score, clan && clan.money, clan && [...clan.solved], clan && clan.progress, clan && clan.suites, clan && [...clan.started], firsts]);
 setInterval(async () => {
   if (document.hidden || !problems.length) return;
   await loadClan();

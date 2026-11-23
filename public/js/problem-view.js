@@ -331,10 +331,15 @@
   /**
    * Render problem `p` into `paper` (an <article class="paper">).
    * Co-op problems get a Global / Player 1 / Player 2 toggle; the chosen view is kept in paper.dataset.view.
+   * options.hideViews: views to leave out, e.g. ['p2'] so Player 1 doesn't see Player 2's task.
+   * options.viewNames: tab labels to use instead, e.g. { p1: 'Player 1 · Somchai' }.
    */
   function renderProblem(paper, p, options = {}) {
     paper.textContent = '';
     const coop = p.mode === 'coop';
+    const hidden = new Set(options.hideViews || []);
+    const names = options.viewNames || {};
+    const views = VIEWS.filter(([v]) => !hidden.has(v)).map(([v, name]) => [v, names[v] || name]);
     if (p.customScript) {
       // Font Awesome "code" icon (CC BY 4.0, fontawesome.com)
       const icon = el('span', 'p-script');
@@ -375,7 +380,7 @@
     if (coop) {
       tabs.setAttribute('role', 'tablist');
       tabs.setAttribute('aria-label', 'Objective');
-      for (const [view, name] of VIEWS) {
+      for (const [view, name] of views) {
         const b = el('button');
         b.type = 'button';
         b.dataset.view = view;
@@ -388,7 +393,7 @@
     }
     paper.appendChild(head);
     paper.appendChild(body);
-    const start = coop && ['global', 'p1', 'p2'].includes(paper.dataset.view) ? paper.dataset.view : 'global';
+    const start = coop && views.some(([v]) => v === paper.dataset.view) ? paper.dataset.view : 'global';
     show(start);
 
 

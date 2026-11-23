@@ -250,6 +250,13 @@ function cleanProblem(body) {
   return p;
 }
 
+// Co-op starter code when a problem has none (same as the editor page's defaults).
+// A part's code goes back to this when its player gives the part up.
+const COOP_STARTERS = {
+  p1: '#include <stdio.h>\n\nint main(void) {\n    // Player 1\n    \n',
+  p2: '    // Player 2\n    \n    return 0;\n}\n',
+};
+
 // =============== camp timer (data/timer.json) ===============
 // The admin sets a length, then starts, pauses and resumes it. Running: endsAt is when it hits 0.
 // Paused or not started: remainingMs is what's left. durationMs 0 = no timer (nothing is locked).
@@ -672,12 +679,22 @@ async function handle(req, res) {
     return sendJson(res, 200, clans.stateFor(clans.clanOf(req), problems));
   }
   if (clanCodeMatch) {
-    if (!students.userOf(req)) return needLogin(res);
+    const user = students.userOf(req);
+    if (!user) return needLogin(res);
     const clan = clans.clanOf(req);
     if (!clan) return sendJson(res, 400, { error: 'Not playing for a clan.' });
     const pid = clanCodeMatch[1];
-    if (!problems.some((x) => x.id === pid)) return sendJson(res, 404, { error: 'Problem not found.' });
-    if (method === 'GET') return sendJson(res, 200, clans.getCode(clan, pid));
+    const problem = problems.find((x) => x.id === pid);
+    if (!problem) return sendJson(res, 404, { error: 'Problem not found.' });
+    const coop = problem.mode === 'coop';
+    if (method === 'GET') {
+      // the page checks in every 2 s while open: that keeps the student's part from being freed
+      if (coop) clans.touchRole(clan, pid, user.username);
+      return sendJson(res, 200, {
+        ...clans.getCode(clan, pid), resetAt: clans.resetAtOf(clan),
+        ...(coop ? { roles: clans.rolesFor(clan, pid), me: user.username } : {}),
+      });
+    }
     if (method === 'PUT') {
       let body;
       try { body = await readJson(req, LIMITS.maxCodeBytes * 2 + 1024); }
@@ -686,9 +703,31 @@ async function handle(req, res) {
       const text = String(body.code ?? '');
       if (!clans.CODE_SLOTS.includes(slot)) return sendJson(res, 400, { error: 'Bad code box.' });
       if (Buffer.byteLength(text) > LIMITS.maxCodeBytes) return sendJson(res, 413, { error: 'Code is too large.' });
+      // co-op: only the student who took a part can change its code
+      if (coop && clans.roleOf(clan, pid, user.username) !== slot) return sendJson(res, 403, { error: 'This is not your part.', notYours: true });
       return sendJson(res, 200, { v: clans.putCode(clan, pid, slot, text) });
     }
     res.writeHead(405); return res.end();
+  }
+
+  // co-op parts: { action: 'take', part } | { action: 'leave' } | { action: 'free', part }
+  const roleMatch = pathname.match(/^\/api\/clan\/role\/([\w-]+)$/);
+  if (roleMatch && method === 'POST') {
+    const user = students.userOf(req);
+    if (!user) return needLogin(res);
+    const clan = clans.clanOf(req);
+    if (!clan) return sendJson(res, 400, { error: 'Not playing for a clan.' });
+    const problem = problems.find((x) => x.id === roleMatch[1]);
+    if (!problem || problem.mode !== 'coop') return sendJson(res, 404, { error: 'Not a co-op problem.' });
+    let body;
+    try { body = await readJson(req, 1024); } catch { return sendJson(res, 400, { error: 'Bad request.' }); }
+    const starters = { p1: problem.p1Starter || COOP_STARTERS.p1, p2: problem.p2Starter || COOP_STARTERS.p2 };
+    const err = body.action === 'take' ? clans.takeRole(clan, problem.id, user, String(body.part), starters)
+      : body.action === 'leave' ? clans.leaveRole(clan, problem.id, user, starters)
+      : body.action === 'free' ? clans.freeRole(clan, problem.id, String(body.part))
+      : 'Unknown action.';
+    if (err) return sendJson(res, 409, { error: err, roles: clans.rolesFor(clan, problem.id) });
+    return sendJson(res, 200, { ok: true, roles: clans.rolesFor(clan, problem.id), me: user.username, ...clans.getCode(clan, problem.id) });
   }
 
   // ---- admin ----
@@ -725,6 +764,22 @@ async function handle(req, res) {
 
   // every clan's score, cleared missions and hints; reset one clan (testing)
   if (pathname === '/api/admin/clans' && method === 'GET') return sendJson(res, 200, { ...clans.overview(problems), members: students.membersByClan() });
+  // add or take away a clan's money by hand: { amount } (negative takes away)
+  const moneyMatch = pathname.match(/^\/api\/admin\/clans\/([\w-]+)\/money$/);
+  if (moneyMatch && method === 'POST') {
+    if (!clans.CLANS.some((c) => c.id === moneyMatch[1])) return sendJson(res, 404, { error: 'No such clan.' });
+    let body;
+    try { body = await readJson(req, 1024); } catch { return sendJson(res, 400, { error: 'Bad request.' }); }
+    const amount = Number(body.amount);
+    if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount === 0 || Math.abs(amount) > 1e6) return sendJson(res, 400, { error: 'Enter a whole amount, e.g. 50 or -20.' });
+    return sendJson(res, 200, { money: clans.addMoney(moneyMatch[1], amount, problems) });
+  }
+
+  // reset EVERY clan: progress, scores, money, hints and saved code (logins and the timer are kept)
+  if (pathname === '/api/admin/clans/reset-all' && method === 'POST') {
+    clans.resetAll();
+    return sendJson(res, 200, { ok: true });
+  }
   if (clanResetMatch && method === 'POST') {
     if (!clans.CLANS.some((c) => c.id === clanResetMatch[1])) return sendJson(res, 404, { error: 'No such clan.' });
     clans.reset(clanResetMatch[1]);
@@ -820,6 +875,10 @@ async function handle(req, res) {
     const problem = problems.find((x) => x.id === body.problemId);
     if (!problem) return sendJson(res, 404, { ok: false, stage: 'request', message: 'Problem not found.' });
     const coop = problem.mode === 'coop';
+    // co-op in a clan: only the clan's Player 1 and Player 2 of this problem can submit
+    if (coop && clans.clanOf(req) && !clans.roleOf(clans.clanOf(req), problem.id, students.userOf(req).username)) {
+      return sendJson(res, 403, { ok: false, stage: 'request', message: 'Take Player 1 or Player 2 to submit. Only the two players can submit.' });
+    }
     const part = coop && ['p1', 'p2'].includes(body.part) ? body.part : null;
     const files = body.files || {};
 

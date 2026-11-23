@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.png">
 <title>C Practice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -223,6 +224,33 @@
     background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .09) 0 2px, transparent 2px 7px), var(--clan);
   }
   .clan-logo[hidden] { display: none; }
+
+  /* co-op in a clan: each player box shows who has it next to the file name ("· Somchai"),
+     and a free part's box is blurred with a Choose button on it */
+  .code-area { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .code-area > .code-scroll { flex: 1; }
+  .box-head .pname { font: 400 .76rem var(--font-ui); color: var(--muted); white-space: nowrap; }
+  .box-head .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: 16em; }
+  .part-act { display: inline-flex; gap: 4px; }
+  .part-act button { padding: 2px 9px; font-size: .76rem; border-radius: 6px; background: transparent; }
+  .part-act button.danger:hover { border-color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); }
+  .box-body { position: relative; }
+  .box.covered .editor-wrap { filter: blur(6px); pointer-events: none; user-select: none; }
+  .box-cover {
+    position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    background: color-mix(in srgb, var(--code-bg) 45%, transparent);
+  }
+  .bc-text { margin: 0; font: 500 .88rem var(--font-ui); color: var(--muted); }
+  .bc-btn {
+    padding: 7px 22px; font: 600 .92rem var(--font-ui); border-radius: 8px;
+    background: var(--pc); border-color: var(--pc); color: var(--bg);
+  }
+  .bc-btn:hover { border-color: var(--text); }
+  .bc-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  /* boxes you can't type in */
+  .ro-tag { font: 400 .76rem var(--font-ui); color: var(--muted); }
+  .box.readonly .CodeMirror, .box.readonly textarea.plain { opacity: .82; }
+  .box.readonly .CodeMirror-cursors { display: none; }
 </style>
 </head>
 <body>
@@ -280,6 +308,7 @@
       </dl>
     </div>
 
+    <div class="code-area" id="code-area">
     <div class="code-scroll" id="code-scroll">
       <div class="box out-box" id="box-out" data-box="out">
         <div class="box-head">
@@ -290,22 +319,27 @@
       </div>
       <div class="box ed pl1" id="box-p1" data-box="p1">
         <div class="box-head">
-          <button type="button" class="box-toggle"><span class="chev">▾</span><span class="name" id="p1-name">Player 1</span><span class="file" id="p1-file">p1.c</span></button>
+          <button type="button" class="box-toggle"><span class="chev">▾</span><span class="name" id="p1-name">Player 1</span><span class="file" id="p1-file">p1.c</span><span class="pname"></span><span class="ro-tag" hidden>read-only</span></button>
+          <span class="part-act"></span>
           <span class="pmarks" id="p1-marks"></span>
         </div>
         <div class="box-body">
           <div class="editor-wrap"><textarea id="code" class="plain" spellcheck="false" aria-label="Player 1 code"></textarea></div>
+          <div class="box-cover" hidden><p class="bc-text"></p><button type="button" class="bc-btn" hidden>Choose</button></div>
         </div>
       </div>
       <div class="box ed pl2" id="box-p2" data-box="p2">
         <div class="box-head">
-          <button type="button" class="box-toggle"><span class="chev">▾</span><span class="name">Player 2</span><span class="file">main.c (continued)</span></button>
+          <button type="button" class="box-toggle"><span class="chev">▾</span><span class="name">Player 2</span><span class="file">main.c (continued)</span><span class="pname"></span><span class="ro-tag" hidden>read-only</span></button>
+          <span class="part-act"></span>
           <span class="pmarks" id="p2-marks"></span>
         </div>
         <div class="box-body">
           <div class="editor-wrap"><textarea id="code2" class="plain" spellcheck="false" aria-label="Player 2 code"></textarea></div>
+          <div class="box-cover" hidden><p class="bc-text"></p><button type="button" class="bc-btn" hidden>Choose</button></div>
         </div>
       </div>
+    </div>
     </div>
   </section>
 </main>
@@ -446,6 +480,8 @@ function loadCode() {
   loaded[1] = editor.getValue(); loaded[2] = coop ? editor2.getValue() : '';
   syncLineNumbers();
   requestAnimationFrame(() => { editor.refresh(); editor2.refresh(); });
+  // co-op in a clan: read-only until the server says who is Player 1 / Player 2 (first sync, right below)
+  applyRoles(null);
   startSync();
 }
 
@@ -465,10 +501,129 @@ Clan.mountAccount($('account'));
   img.hidden = false;
 })();
 const CLAN = Clan.id();
+// The admin reset the clan: this browser's saved code was just cleared, so reload to start from the starter code.
+Clan.onReset = () => location.reload();
 let clanState = null;  // { score, solved, progress, hintsLeft, revealed, ... } from the server
 const slotName = (slot) => (isCoop() ? `p${slot}` : 'c');
 const edFor = (slot) => (slot === 1 ? editor : editor2);
 let sync = { pid: null, v: {}, pending: {}, timers: {} };
+
+/* ---------- co-op parts (clan only): one student is Player 1, another is Player 2 ---------- */
+// Each player types only in their own box; the other box starts closed and is read-only, and the
+// other player's task tab is hidden. Everyone else in the clan watches both boxes read-only.
+// Only the two players can Run and Submit. Giving up a part wipes its code for the whole clan.
+let ME = (Clan.me() || {}).username || null;   // updated from the server's answer
+const PART_NAME = { p1: 'Player 1', p2: 'Player 2' };
+let roles = { p1: null, p2: null };   // { username, name, away, awayMin } | null
+let myPart = null;                    // 'p1' | 'p2' | null
+let rolesKnown = false;
+const roleMode = () => !!CLAN && isCoop();
+const canEdit = (slot) => !roleMode() || myPart === `p${slot}`;
+
+function applyRoles(next, me = ME) {
+  if (me) ME = me;
+  roles = { p1: null, p2: null, ...(next || {}) };
+  rolesKnown = !!next;
+  const before = myPart;
+  myPart = roleMode() ? (['p1', 'p2'].find((p) => roles[p] && roles[p].username === me) || null) : null;
+  renderParts();
+  applyEditable();
+  // the problem sheet shows your own tab, with the player's name on it: redraw when that changes
+  const sheet = paperKey();
+  if (before !== myPart || sheet !== lastPaperKey) partChanged();
+}
+let lastPaperKey = '';
+const paperKey = () => JSON.stringify([myPart, roles.p1 && roles.p1.name, roles.p2 && roles.p2.name]);
+function applyEditable() {
+  for (const slot of [1, 2]) {
+    const ok = canEdit(slot);
+    edFor(slot).setReadOnly(!ok);
+    const box = $(`box-p${slot}`);
+    const ro = roleMode() && !ok;
+    box.classList.toggle('readonly', ro);
+    box.querySelector('.ro-tag').hidden = !ro;
+  }
+  updateSubmit();
+}
+// The part changed (picked, switched, given up, or this problem just loaded):
+// show only your own task tab, open your box and close the other one.
+function partChanged() {
+  if (!problem) return;
+  lastPaperKey = paperKey();
+  renderPaper();
+  if (!roleMode()) return;
+  for (const slot of [1, 2]) {
+    const box = $(`box-p${slot}`);
+    box.classList.toggle('min', !!myPart && myPart !== `p${slot}`);
+  }
+  requestAnimationFrame(() => { editor.refresh(); editor2.refresh(); });
+}
+// Each player box: who has it next to the file name ("· Somchai (you)", "· Malee", "· Free"),
+// Leave on your own box, Free on a box whose player has been away 5 minutes,
+// and a free part's box is blurred: with a Choose button if you have no part yet, otherwise "Waiting for …".
+function renderParts() {
+  for (const slot of [1, 2]) {
+    const part = `p${slot}`;
+    const box = $(`box-p${slot}`);
+    const label = box.querySelector('.name'), nameEl = box.querySelector('.pname'), act = box.querySelector('.part-act');
+    const cover = box.querySelector('.box-cover'), btn = cover.querySelector('.bc-btn');
+    act.textContent = '';
+    if (!roleMode()) {
+      nameEl.textContent = '';
+      label.title = '';
+      if (slot === 2) label.textContent = PART_NAME.p2;   // (box 1's label is set by loadCode)
+      cover.hidden = true; box.classList.remove('covered');
+      continue;
+    }
+    const holder = roles[part];
+    const mine = !!holder && holder.username === ME;
+    // a taken part shows the player's name instead of "Player 1" / "Player 2"
+    label.textContent = rolesKnown && holder ? holder.name : PART_NAME[part];
+    label.title = rolesKnown && holder ? PART_NAME[part] : '';
+    nameEl.textContent = rolesKnown && holder && !mine && holder.away ? `· away ${holder.awayMin} min` : '';
+    // header button
+    if (rolesKnown && (mine || (holder && holder.away))) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (mine) { b.textContent = 'Leave'; b.className = 'danger'; b.title = `Give up ${PART_NAME[part]} (its code is wiped for your team)`; }
+      else { b.textContent = 'Free'; b.title = `${holder.name} hasn't had this problem open for ${holder.awayMin} min. Free the part (the code is kept).`; }
+      b.addEventListener('click', (e) => { e.stopPropagation(); partAction(part, mine ? 'leave' : 'free'); });
+      act.appendChild(b);
+    }
+    // the blurred cover on a free part (or while loading)
+    const covered = !rolesKnown || !holder;
+    cover.hidden = !covered;
+    box.classList.toggle('covered', covered);
+    const canChoose = rolesKnown && !holder && !myPart;
+    cover.querySelector('.bc-text').textContent = !rolesKnown ? 'Loading…' : canChoose ? 'ยังไม่มีใครเลือกส่วนนี้' : `Waiting for ${PART_NAME[part]}`;
+    btn.textContent = `Choose ${PART_NAME[part]}`;
+    btn.hidden = !canChoose;
+    btn.title = `Become ${PART_NAME[part]}`;
+    btn.onclick = () => partAction(part, 'take');
+  }
+}
+async function partAction(part, action) {
+  if (!problem) return;
+  if (action === 'leave' && !confirm(`Give up ${PART_NAME[part]}?\n\n${PART_NAME[part]}'s code will be wiped back to the starter code for your whole team.`)) return;
+  if (action === 'take' && myPart && !confirm(`Switch to ${PART_NAME[part]}?\n\nYou give up ${PART_NAME[myPart]}, and its code will be wiped back to the starter code for your whole team.`)) return;
+  if (action === 'free' && !confirm(`Free ${PART_NAME[part]}?\n\n${roles[part] ? roles[part].name : 'The player'} will lose the part. The code is kept, so whoever takes it can carry on.`)) return;
+  // the part being given up: drop unsent typing so it isn't sent after the wipe
+  if (myPart && (action === 'leave' || action === 'take')) {
+    clearTimeout(sync.timers[myPart]);
+    sync.pending[myPart] = false;
+  }
+  try {
+    const r = await fetch('api/clan/role/' + encodeURIComponent(problem.id), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, part }),
+    });
+    const j = await r.json();
+    if (j.roles) applyRoles(j.roles, j.me);
+    if (!r.ok) { toast(j.error || 'Could not change the part.'); return; }
+    if (action === 'take') toast(`You are ${PART_NAME[part]}`);
+    pullRemote();   // picks up the wiped (starter) code
+  } catch { toast('Could not reach the server.'); }
+}
 function setSync(status) {
   const el = $('sync');
   el.classList.toggle('saving', status === 'saving');
@@ -482,6 +637,7 @@ function startSync() {
 }
 function pushSoon(slot) {
   if (!CLAN || !problem || sync.pid !== problem.id) return;
+  if (!canEdit(slot)) return;   // co-op: only your own part is saved
   const name = slotName(slot);
   sync.pending[name] = true;
   setSync('saving');
@@ -496,6 +652,7 @@ async function pushNow(slot) {
       body: JSON.stringify({ slot: name, code: text }),
     });
     const j = await r.json();
+    if (j.notYours) { sync.pending[name] = false; pullRemote(); return; }   // the part was taken away: reload who's who
     if (!r.ok) throw new Error();
     if (sync.pid !== pid) return;
     sync.v[name] = j.v;
@@ -510,7 +667,10 @@ async function pullRemote(first = false) {
     const r = await fetch('api/clan/code/' + encodeURIComponent(pid), { headers: Clan.headers(), cache: 'no-store' });
     if (!r.ok) throw new Error();
     const data = await r.json();
+    // the admin reset the clan: Clan.onReset (below) reloads the page with the starter code
+    if (Clan.checkReset(data.resetAt)) return;
     if (!problem || problem.id !== pid || sync.pid !== pid) return;
+    if (data.roles) applyRoles(data.roles, data.me);
     for (const slot of isCoop() ? [1, 2] : [1]) {
       const name = slotName(slot), rec = data[name];
       if (sync.pending[name]) continue;                       // our own unsent edits win
@@ -519,6 +679,10 @@ async function pullRemote(first = false) {
         sync.v[name] = rec.v;
         store.set(keyFor(slot), rec.code);
         loaded[slot] = rec.code;
+      } else if (!rec && first && !canEdit(slot)) {
+        // nothing saved for a part that isn't yours: show its starter, not an old copy from this computer
+        setCode(edFor(slot), starter(slot));
+        loaded[slot] = edFor(slot).getValue();
       } else if (!rec && first && edFor(slot).getValue() !== loaded[slot]) {
         pushSoon(slot);                                       // nothing shared yet: share what this computer has
       } else if (!rec && first && store.get(keyFor(slot)) != null) {
@@ -603,8 +767,17 @@ async function loadProblemList() {
 // the student's clan: fills {clan} in the story and counts for {clan} in "Custom script" outputs
 let myClan = null;
 const myClanReady = Clan.info().then((c) => { myClan = c; }).catch(() => {});
+// Co-op in a clan: a player only sees Global and their own task tab (with their name on it);
+// a student without a part only sees Global.
+const hiddenViews = () => (!roleMode() ? [] : !myPart ? ['p1', 'p2'] : [myPart === 'p1' ? 'p2' : 'p1']);
+const viewNames = () => {
+  if (!roleMode()) return {};
+  const out = {};
+  for (const p of ['p1', 'p2']) if (roles[p]) out[p] = `${PART_NAME[p]} · ${roles[p].name}`;
+  return out;
+};
 function renderPaper() {
-  ProblemView.renderProblem($('paper'), problem, { hint: hintOptions(problem), clan: myClan });
+  ProblemView.renderProblem($('paper'), problem, { hint: hintOptions(problem), clan: myClan, hideViews: hiddenViews(), viewNames: viewNames() });
 }
 
 async function openProblem(id) {
@@ -630,6 +803,14 @@ async function openProblem(id) {
 
 
 $('reset').addEventListener('click', () => {
+  // co-op in a clan: a player can only reset their own part
+  if (roleMode()) {
+    if (!myPart) return toast('Take a part first.');
+    const slot = myPart === 'p1' ? 1 : 2;
+    if (!confirm(`Replace ${PART_NAME[myPart]}'s code with the starter code?`)) return;
+    setCode(edFor(slot), starter(slot)); store.set(keyFor(slot), edFor(slot).getValue()); pushSoon(slot);
+    return;
+  }
   if (!confirm(isCoop() ? 'Replace both players\' code with the starter code?' : 'Replace your code with the starter code?')) return;
   setCode(editor, starter(1)); store.set(keyFor(1), editor.getValue()); pushSoon(1);
   if (isCoop()) { setCode(editor2, starter(2)); store.set(keyFor(2), editor2.getValue()); pushSoon(2); }
@@ -724,8 +905,15 @@ function totalTests() {
 }
 function updateSubmit() {
   const n = totalTests();
-  $('submit').disabled = !n;
-  $('submit').title = n ? `Check against ${n} hidden test case${n === 1 ? '' : 's'}` : 'This problem has no test cases yet';
+  // co-op in a clan: only Player 1 and Player 2 can Run and Submit
+  const watching = roleMode() && !myPart;
+  if (busy) return;
+  $('submit').disabled = !n || watching;
+  $('run-samples').disabled = watching;
+  $('reset').disabled = watching;
+  $('submit').title = watching ? 'Take Player 1 or Player 2 to submit'
+    : n ? `Check against ${n} hidden test case${n === 1 ? '' : 's'}` : 'This problem has no test cases yet';
+  $('run-samples').title = watching ? 'Take Player 1 or Player 2 to run the code' : 'Set up test cases and run them (Ctrl+Enter runs them straight away)';
 }
 
 /* ---------- each player's own tests ---------- */
@@ -754,6 +942,7 @@ function showResultsArea() {
 
 async function runCases() {
   if (busy) return;
+  if (roleMode() && !myPart) { toast('Take Player 1 or Player 2 to run the code.'); return; }
   const cases = getCases();
   if (!cases.length) { openCases(); return; }
   setBusy(true, 'run');

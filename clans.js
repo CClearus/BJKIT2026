@@ -100,6 +100,21 @@ function scoreOf(id, problems, firsts = firstClears(problems)) {
   }
   return total;
 }
+// Money: every point the clan earns is also 1 money, plus whatever the admin adds or takes away by
+// hand (moneyAdjust). Never below 0. Nothing can be bought with it yet.
+function moneyOf(id, problems, firsts) {
+  const s = state[id];
+  return Math.max(0, scoreOf(id, problems, firsts) + ((s && s.moneyAdjust) || 0));
+}
+// Admin: add (or, with a negative amount, take away) money. Returns the new amount.
+function addMoney(id, amount, problems) {
+  const s = clanState(id);
+  const before = moneyOf(id, problems);
+  const delta = Math.max(-before, Math.round(Number(amount) || 0));   // can't go below 0
+  s.moneyAdjust = (s.moneyAdjust || 0) + delta;
+  persist('state');
+  return moneyOf(id, problems);
+}
 const better = (a, b) => !b || !b.total || a.passed / a.total >= b.passed / b.total;
 
 /* ---------- submit ---------- */
@@ -143,6 +158,75 @@ function putCode(id, pid, slot, text) {
   return v;
 }
 
+/* ---------- co-op parts: who in the clan is Player 1 / Player 2 of each problem ---------- */
+// state[clan].roles[pid] = { p1: { u: username, name }, p2: { ... } }  (saved)
+// lastSeen: when the part's owner last had the problem open (memory only; their page checks in every 2 s).
+// A part whose owner has been away for AWAY_MS can be freed by a teammate (its code is kept).
+const PARTS = ['p1', 'p2'];
+const AWAY_MS = Number(process.env.PART_AWAY_MS) || 5 * 60 * 1000;   // (PART_AWAY_MS only for testing)
+const lastSeen = new Map();   // "clan:pid:part" -> ms
+const startedAt = Date.now();
+const seenKey = (id, pid, part) => `${id}:${pid}:${part}`;
+const rolesOf = (id, pid) => ((clanState(id).roles ||= {})[pid] ||= {});
+
+function roleOf(id, pid, username) {
+  const r = state[id] && state[id].roles && state[id].roles[pid];
+  if (!r) return null;
+  return PARTS.find((p) => r[p] && r[p].u === username) || null;
+}
+// What the page shows: { p1: { username, name, away, awayMin } | null, p2: ... }
+function rolesFor(id, pid) {
+  const r = (state[id] && state[id].roles && state[id].roles[pid]) || {};
+  const out = {};
+  for (const p of PARTS) {
+    if (!r[p]) { out[p] = null; continue; }
+    const idle = Date.now() - (lastSeen.get(seenKey(id, pid, p)) || startedAt);
+    out[p] = { username: r[p].u, name: r[p].name, away: idle >= AWAY_MS, awayMin: Math.floor(idle / 60000) };
+  }
+  return out;
+}
+// The owner's page checked in.
+function touchRole(id, pid, username) {
+  const part = roleOf(id, pid, username);
+  if (part) lastSeen.set(seenKey(id, pid, part), Date.now());
+}
+// Giving up a part wipes its code back to the starter, for the whole clan.
+function wipePart(id, pid, part, starter) {
+  putCode(id, pid, part, starter);
+}
+// Take a free part. Taking the other part gives up (and wipes) the one you had.
+// Returns null, or an error message.
+function takeRole(id, pid, user, part, starters) {
+  if (!PARTS.includes(part)) return 'Unknown part.';
+  const r = rolesOf(id, pid);
+  if (r[part] && r[part].u !== user.username) return `${part === 'p1' ? 'Player 1' : 'Player 2'} is already taken by ${r[part].name}.`;
+  const had = roleOf(id, pid, user.username);
+  if (had === part) return null;
+  if (had) { delete r[had]; wipePart(id, pid, had, starters[had]); }
+  r[part] = { u: user.username, name: user.name };
+  lastSeen.set(seenKey(id, pid, part), Date.now());
+  persist('state');
+  return null;
+}
+function leaveRole(id, pid, user, starters) {
+  const had = roleOf(id, pid, user.username);
+  if (!had) return 'You have no part on this problem.';
+  delete rolesOf(id, pid)[had];
+  wipePart(id, pid, had, starters[had]);
+  persist('state');
+  return null;
+}
+// A teammate frees a part whose owner has been away for 5 minutes. The code stays for whoever takes it next.
+function freeRole(id, pid, part) {
+  const r = rolesOf(id, pid);
+  if (!r[part]) return null;
+  const idle = Date.now() - (lastSeen.get(seenKey(id, pid, part)) || startedAt);
+  if (idle < AWAY_MS) return `${r[part].name} is still working on this part.`;
+  delete r[part];
+  persist('state');
+  return null;
+}
+
 /* ---------- what a clan member's browser needs ---------- */
 function stateFor(id, problems) {
   const firsts = firstClears(problems);
@@ -152,9 +236,11 @@ function stateFor(id, problems) {
   return {
     clan: id,
     score: scoreOf(id, problems, firsts),
+    money: moneyOf(id, problems, firsts),
     solved: Object.keys(s.solved).filter((pid) => ids.has(pid)),
     progress: s.progress,
     suites: s.suites || {},
+    resetAt: s.resetAt || 0,
     started: Object.keys(code[id] || {}).filter((pid) => ids.has(pid)),
     hintsLeft: hintsLeft(id),
     revealed: Object.keys(s.revealed),
@@ -174,6 +260,7 @@ function overview(problems) {
       return {
         ...c,
         score: scoreOf(c.id, problems, firsts),
+        money: moneyOf(c.id, problems, firsts),
         cleared: Object.keys(s.solved).filter((pid) => ids.has(pid)).length,
         hintsLeft: Math.max(0, HINTS_PER_CLAN - (s.hintsUsed || 0)),
         firsts: Object.keys(firsts).filter((pid) => firsts[pid] === c.id),
@@ -182,13 +269,26 @@ function overview(problems) {
     missions: problems.length,
   };
 }
+// resetAt tells the students' browsers that a reset happened, so they drop their own saved copy of
+// the code too (otherwise the editor would send it straight back to the server).
 function reset(id) {
-  state[id] = blank();
+  state[id] = { ...blank(), resetAt: Date.now() };
   delete code[id];
   persist('state');
   persist('code');
 }
+// Every clan back to the start: cleared missions, scores, hints and all saved code.
+function resetAll() {
+  const now = Date.now();
+  state = {};
+  for (const c of CLANS) state[c.id] = { ...blank(), resetAt: now };
+  code = {};
+  persist('state');
+  persist('code');
+}
+const resetAtOf = (id) => (state[id] && state[id].resetAt) || 0;
 
 module.exports = {
-  CLANS, CODE_SLOTS, load, clanOf, recordSubmit, useHint, hintsLeft, getCode, putCode, stateFor, overview, reset,
+  CLANS, CODE_SLOTS, load, clanOf, recordSubmit, useHint, hintsLeft, getCode, putCode, stateFor, overview, reset, resetAll, resetAtOf, addMoney,
+  roleOf, rolesFor, touchRole, takeRole, leaveRole, freeRole,
 };

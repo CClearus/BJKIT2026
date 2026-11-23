@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.png">
 <title>Problem Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -203,7 +204,8 @@
   .cc-top .nm small { font-size: .82rem; opacity: .95; text-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
   .cc-top .no { position: absolute; top: 9px; right: 12px; font: 600 .6rem var(--font-mono); letter-spacing: .3em; opacity: .9; }
   .cc-top .here { position: absolute; bottom: 9px; right: 12px; font: 700 .64rem var(--font-ui); letter-spacing: .1em; text-transform: uppercase; background: rgba(0, 0, 0, .22); padding: 2px 8px; border-radius: 99px; }
-  .cc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 12px 16px 2px; }
+  .cc-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 12px 16px 2px; }
+  .cc-stats b.money { color: var(--ok); }
   .cc-stats b { display: block; font: 700 1.15rem var(--font-mono); }
   .cc-stats b.score { color: color-mix(in srgb, var(--clan) 70%, var(--text)); }
   .cc-stats span { font-size: .7rem; color: var(--muted); }
@@ -454,7 +456,8 @@
   <a class="btn" href="playground.html" target="_blank" rel="noopener" title="A free C editor and compiler for trying code yourself (opens in a new tab)">&lt;/&gt; Code playground ↗</a>
   <a class="btn" href="how-it-works.html" target="_blank" rel="noopener" title="How co-op problems are built and judged, and how to teach it (opens in a new tab)">? How it works ↗</a>
   <button id="timer-btn" title="The countdown on the map. When it reaches 0, students can no longer Submit">&#9201; Timer <span id="timer-btn-left"></span></button>
-  <button id="clans-btn" title="Every clan's score and progress; play as a clan to test">&#127984; Clans</button>
+  <button id="clans-btn" title="Every clan's points, money and progress; play as a clan to test">&#127984; Clans</button>
+  <button id="reset-all" class="danger" title="Clear EVERY clan's progress, points, money, hints, saved code and Player 1 / Player 2 picks (logins, problems and the timer are kept)">⟲ Reset all players</button>
   <a class="btn" href="./" id="view-site">View site ↗</a>
   <button id="reset-progress" title="Clear solved marks, hints and saved code in this browser (for testing)">↺ Reset my progress</button>
   <button id="logout" hidden>Log out</button>
@@ -740,7 +743,7 @@
       <span class="spacer"></span>
       <button type="button" class="icon-btn" id="timer-close" aria-label="Close">✕</button>
     </div>
-    <p class="cm-sub">Shown big in the middle of the map's top bar. When it reaches 0, students can no longer Submit (scores freeze). They can still read the problems and Run their code.</p>
+    <p class="cm-sub">Shown big in the middle of the map's top bar. When it reaches 0, students can no longer Submit (points freeze). They can still read the problems and Run their code.</p>
     <div class="tm-readout"><small id="tm-status">No timer</small><b id="tm-left">--:--</b></div>
     <div class="tm-row">
       <button type="button" class="primary" id="tm-start">▶ Start</button>
@@ -762,7 +765,7 @@
   </div>
 </div>
 
-<!-- clans: every clan's score, progress and students -->
+<!-- clans: every clan's points, money, progress and students -->
 <div class="clans-back" id="clans-back" hidden>
   <div class="clans-modal" role="dialog" aria-modal="true" aria-labelledby="clans-title">
     <div class="cm-head">
@@ -771,7 +774,7 @@
       <a class="btn" href="./" target="_blank">Open the map ↗</a>
       <button type="button" class="icon-btn" id="clans-close" aria-label="Close">✕</button>
     </div>
-    <p class="cm-sub">Progress, score, hints and code are shared by everyone in a clan. Students are put in their clan by the student list (<code>data/students.json</code>). To test a clan, open the map and log in as one of its students.</p>
+    <p class="cm-sub">Progress, points, money, hints and code are shared by everyone in a clan. Students are put in their clan by the student list (<code>data/students.json</code>). To test a clan, open the map and log in as one of its students.</p>
     <div class="clan-grid" id="clan-grid"></div>
     <div class="scoring" id="scoring"></div>
   </div>
@@ -2499,6 +2502,20 @@ $('clans-close').addEventListener('click', closeClans);
 $('clans-back').addEventListener('mousedown', (e) => { if (e.target === $('clans-back')) closeClans(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('clans-back').hidden) closeClans(); });
 
+/* ---------- reset all players ---------- */
+$('reset-all').addEventListener('click', async () => {
+  const typed = prompt('Reset ALL players?\n\nThis clears, for every clan: cleared missions, points, money, test progress, used hints, ALL saved code and who is Player 1 / Player 2.\nStudent logins, problems, tests and the timer are kept. It cannot be undone.\n\nType RESET to confirm:');
+  if (typed == null) return;
+  if (typed.trim().toUpperCase() !== 'RESET') return toast('Not reset: you need to type RESET.');
+  try {
+    await api('POST', 'api/admin/clans/reset-all');
+    toast('All players reset');
+    if (!$('clans-back').hidden) renderClans();
+  } catch (e) {
+    if (e.message !== 'auth') toast(e.message === 'Request failed.' ? 'The server is out of date: restart it (start.bat) and try again.' : e.message);
+  }
+});
+
 /* ---------- camp timer ---------- */
 let tmState = null, tmFetchedAt = 0;
 const tmLeft = () => (!tmState ? 0 : tmState.status === 'running'
@@ -2578,15 +2595,17 @@ async function renderClans() {
         <span class="no"></span>
       </div>
       <div class="cc-stats">
-        <div><b class="score"></b><span>Score</span></div>
+        <div><b class="score"></b><span>Points</span></div>
+        <div><b class="money"></b><span>Money</span></div>
         <div><b class="cleared"></b><span>Cleared</span></div>
         <div><b class="hints"></b><span>Hints left</span></div>
         <div><b class="firsts"></b><span>Specials 1st</span></div>
       </div>
       <details class="cc-members"><summary></summary><ol></ol></details>
       <div class="cc-actions">
+        <button type="button" class="money-btn" title="Give money (e.g. 50) or take it away (e.g. -20). Every point earned also adds 1 money.">± Money</button>
         <span class="spacer"></span>
-        <button type="button" class="danger reset" title="Clear this clan's progress, score, hints and shared code">Reset</button>
+        <button type="button" class="danger reset" title="Clear this clan's progress, points, money, hints, shared code and Player 1 / Player 2 picks">Reset</button>
       </div>`;
     card.querySelector('img').src = Clan.logo(c.id);
     card.querySelector('img').alt = c.name;
@@ -2606,11 +2625,23 @@ async function renderClans() {
       det.querySelector('ol').appendChild(li);
     }
     card.querySelector('.score').textContent = c.score;
+    card.querySelector('.money').textContent = c.money ?? 0;
+    card.querySelector('.money-btn').addEventListener('click', async () => {
+      const typed = prompt(`Money for ${c.name} (now ${c.money ?? 0}).\n\nType an amount to give, e.g. 50\nor a minus amount to take away, e.g. -20`);
+      if (typed == null || !typed.trim()) return;
+      const amount = Number(typed.trim().replace(/^\+/, ''));
+      if (!Number.isInteger(amount) || amount === 0) return toast('Type a whole number, e.g. 50 or -20.');
+      try {
+        const r = await api('POST', `api/admin/clans/${encodeURIComponent(c.id)}/money`, { amount });
+        toast(`${c.name}: money ${amount > 0 ? '+' : ''}${amount} → ${r.money}`);
+        renderClans();
+      } catch (e) { if (e.message !== 'auth') toast(e.message); }
+    });
     card.querySelector('.cleared').textContent = `${c.cleared}/${data.missions}`;
     card.querySelector('.hints').textContent = `${c.hintsLeft}/${data.hintsPerClan}`;
     card.querySelector('.firsts').textContent = c.firsts.length;
     card.querySelector('.reset').addEventListener('click', async () => {
-      if (!confirm(`Reset ${c.name}?\n\nThis clears its cleared missions, score, used hints and shared code. It cannot be undone.`)) return;
+      if (!confirm(`Reset ${c.name}?\n\nThis clears its cleared missions, points, money, used hints, shared code and who is Player 1 / Player 2. It cannot be undone.`)) return;
       try { await api('POST', `api/admin/clans/${encodeURIComponent(c.id)}/reset`); toast(`${c.name} reset`); renderClans(); }
       catch (e) { if (e.message !== 'auth') toast(e.message); }
     });
