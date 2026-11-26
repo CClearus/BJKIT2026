@@ -9,16 +9,19 @@
   const write = (u) => { try { u ? localStorage.setItem(KEY, JSON.stringify(u)) : localStorage.removeItem(KEY); } catch {} };
   let listPromise = null;
   let leaving = false;
+  // The mission page can run in a frame over the main page (index.html SubPage): going to the
+  // login page must move the whole tab, not just the frame.
+  const tab = (() => { try { return window.top.location.href ? window.top : window; } catch { return window; } })();
 
   function toLogin(why) {
     if (leaving) return;
     leaving = true;
     write(null);
-    const here = location.pathname.split('/').pop() + location.search;
+    const here = tab.location.pathname.split('/').pop() + tab.location.search;
     const q = new URLSearchParams();
     if (here && here !== 'index.html') q.set('next', here);
     if (why) q.set('why', why);
-    location.replace('login.html' + (q.toString() ? '?' + q : ''));
+    tab.location.replace('login.html' + (q.toString() ? '?' + q : ''));
   }
 
   window.Clan = {
@@ -90,7 +93,7 @@
       try { await fetch('api/logout', { method: 'POST' }); } catch {}
       write(null);
       leaving = true;
-      location.replace('login.html');
+      tab.location.replace('login.html');
     },
 
     // "ศราวิณญ์ ตันติวรรธณ์ · เอราวัณ" with the clan's color, and a Log out button

@@ -53,6 +53,9 @@
 /* video from the editor's ▶ Video button: starts on its own at half volume, and loops */
 .paper .p-video { margin: .9em 0; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; overflow: hidden; }
 .paper .p-video iframe, .paper .p-video video { display: block; width: 100%; height: 100%; border: 0; object-fit: contain; }
+/* sound only (a sound file, or a video set to "sound only"): just a play bar */
+.paper .p-video.p-sound { aspect-ratio: auto; background: none; border-radius: 0; overflow: visible; }
+.paper .p-sound audio { display: block; width: 100%; max-width: 480px; height: 40px; }
 .paper .katex { font-size: 1.05em; }
 .paper .empty-note { color: var(--paper-muted); font-style: italic; }
 
@@ -187,22 +190,15 @@
 /* credits footer */
 .paper .p-credits {
   margin-top: 2.4em; padding-top: 12px; border-top: 2px solid var(--paper-text);
-  display: flex; flex-direction: column; gap: 2px; font-size: .88em;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 48px; font-size: .88em; text-align: center;
 }
-.paper .c-key { font: 600 .76em/1.4 var(--font-paper); letter-spacing: .1em; text-transform: uppercase; color: var(--paper-muted); }
-.paper .c-names { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-weight: 600; color: var(--paper-strong); }
-.paper .c-names li { margin: 0; display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.paper .c-name { overflow-wrap: anywhere; }
-/* round profile picture beside each name; the first letter when there is no picture */
-.paper .c-av {
-  flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
-  background: var(--sample-bg); box-shadow: 0 0 0 1px var(--paper-rule);
-}
-.paper .c-av.initial {
-  display: inline-grid; place-items: center;
-  font: 600 13px/1 var(--font-ui); color: var(--paper-muted);
-}
-.paper .c-val.placeholder { color: var(--paper-muted); opacity: .7; }
+.paper .c-group { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.paper .c-key { font: 600 .9em/1.4 var(--font-paper); color: var(--paper-muted); }
+.paper .c-names { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; }
+.paper .c-names li { margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.paper .c-name { font-weight: 600; color: var(--paper-strong); overflow-wrap: anywhere; }
+/* rank sits under the name */
+.paper .c-rank { font-size: .86em; color: var(--paper-muted); overflow-wrap: anywhere; }
 
 .paper .p-title, .paper h2, .paper b, .paper strong { color: var(--paper-strong); }
 

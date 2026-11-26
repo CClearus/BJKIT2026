@@ -690,7 +690,7 @@ window.addEventListener('pageshow', (e) => { if (e.persisted) load(); });
 let lastClanJson = '';
 const clanJson = () => JSON.stringify([clan && clan.score, clan && clan.money, clan && [...clan.solved], clan && clan.progress, clan && clan.suites, clan && [...clan.started], firsts]);
 setInterval(async () => {
-  if (document.hidden || !problems.length) return;
+  if (document.hidden || !problems.length || (window.SubPage && SubPage.isOpen())) return;
   await loadClan();
   const json = clanJson();
   if (json === lastClanJson) return;
@@ -700,6 +700,96 @@ setInterval(async () => {
   renderClanChip();
 }, 10000);
 load();
+</script>
+
+<style>
+  /* a mission opens on top of the map (play.html in a frame), so the board never has to reload */
+  .subpage { position: fixed; inset: 0; z-index: 1000; display: block; width: 100%; height: 100%; border: 0; background: var(--bg); }
+  .subpage[hidden] { display: none; }
+  html.sub-open, html.sub-open body { overflow: hidden; }
+</style>
+<script>
+/* ---------- missions open on top of the map ----------
+   Clicking a mission loads play.html in a full-screen frame over this page instead of leaving it, so the
+   Unity board stays loaded (and is paused while the frame is up: no lag, no reload when coming back).
+   The address bar still shows play.html#problem=…, so Refresh or a copied link opens the normal play page,
+   and the browser's Back button closes the frame. play.html's "← Map" calls SubPage.close() when framed.
+   Ctrl/middle-click on a mission still opens it in a new tab as before. */
+/* Pausing the board (Module.pauseMainLoop) while any reason is set. Only reason now: a mission frame is
+   open (the board is hidden then). On the main page itself the board always runs, effects and all
+   (the user wants that; pausing while the Missions panel was hovered was tried and removed). */
+window.BoardPause = (function () {
+  const why = new Set();
+  let paused = false;
+  function apply() {
+    const m = window.boardGame && window.boardGame.Module;   // Unity's Emscripten module
+    const want = why.size > 0;
+    if (!m || want === paused) return;
+    try { if (want) m.pauseMainLoop(); else m.resumeMainLoop(); paused = want; } catch (e) { console.warn('board pause', e); }
+  }
+  return { set(reason, on) { if (on) why.add(reason); else why.delete(reason); apply(); }, apply };
+})();
+
+window.SubPage = (function () {
+  const homeUrl = location.pathname + location.search;
+  let frame = null;
+
+  const boardPause = (on) => BoardPause.set('mission-open', on);
+  function setPageInert(on) {
+    for (const el of document.body.children) if (el !== frame && !/^(SCRIPT|STYLE)$/.test(el.tagName)) el.inert = on;
+  }
+  function show(url) {
+    const want = new URL(url, location.href).href;
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'subpage';
+      frame.title = 'Mission';
+      frame.allowFullscreen = true;
+      frame.src = want;            // first load: adds no history entry
+      document.body.appendChild(frame);
+    } else if (frame.dataset.url !== want) {
+      frame.contentWindow.location.replace(want);   // replace: keeps Back working as "close"
+    }
+    frame.dataset.url = want;
+    frame.hidden = false;
+    document.documentElement.classList.add('sub-open');
+    setPageInert(true);
+    boardPause(true);
+    frame.focus();
+  }
+  function hide() {
+    if (!frame || frame.hidden) return;
+    // unload the mission page (it saves the code on pagehide) and stop its polling
+    try { frame.contentWindow.location.replace('about:blank'); } catch {}
+    frame.dataset.url = '';
+    frame.hidden = true;
+    document.documentElement.classList.remove('sub-open');
+    setPageInert(false);
+    boardPause(false);
+    if (typeof load === 'function') load();   // scores / progress may have changed
+  }
+  const onPlay = () => /\/play\.html$/.test(location.pathname);
+
+  window.addEventListener('popstate', () => (onPlay() ? show(location.href) : hide()));
+  document.getElementById('tickets').addEventListener('click', (e) => {
+    const a = e.target.closest('a.tk-wrap');
+    if (!a || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    history.pushState({ sub: true }, '', a.getAttribute('href'));
+    show(a.href);
+  });
+
+  return {
+    isOpen: () => !!frame && !frame.hidden,
+    close() {
+      if (history.state && history.state.sub) history.back();   // popstate hides it
+      else { history.replaceState(null, '', homeUrl); hide(); }
+    },
+    // play.html switched problem inside the frame: keep the address bar in step
+    sync(hash) { if (frame && !frame.hidden && onPlay()) history.replaceState(history.state, '', 'play.html' + hash); },
+    boardPause,
+  };
+})();
 </script>
 
 <script>
@@ -753,13 +843,18 @@ load();
       codeUrl: 'game/Build/' + build.code,
       streamingAssetsUrl: 'game/StreamingAssets',
       companyName: 'BJKIT', productName: build.productName || 'Board', productVersion: build.productVersion || '1',
-      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),   // sharp enough, lighter on student laptops
+      devicePixelRatio: 1,   // full sharpness on high-DPI screens costs 2-4x the GPU work; 1 keeps the page smooth
     }, (p) => {
       loading.querySelector('i').style.width = Math.round(p * 100) + '%';
       if (window.PageLoader && PageLoader.progress) PageLoader.progress(p);
     })
       .then((instance) => {
         window.boardGame = instance;   // later: instance.SendMessage(...) to move clan pawns
+        if (window.BoardPause) BoardPause.apply();   // a pause asked for while it was still loading
+        // Which graphics API the build ended up on (WebGPU first, WebGL2 fallback: see WebBuild.UseGraphicsApis).
+        // A canvas that already holds a WebGPU context returns null for getContext('webgl2').
+        instance.graphicsApi = canvas.getContext('webgl2') ? 'WebGL2' : 'WebGPU';
+        console.info('[board] graphics API:', instance.graphicsApi);
         loading.remove();
         host.closest('.map').classList.add('has-board');
         // The loader fades when the game says the splash is over (BoardPage.ready). Safety net for a build
@@ -770,6 +865,10 @@ load();
   };
   document.body.appendChild(script);
 })();
+
+// The automatic resolution drop that used to be here (adaptBoardResolution) was removed: the user wants the
+// board at 100%. Lag is handled by a lighter web-only renderer instead (Game/BJKIT/Assets/Editor/WebBuild.cs).
+try { localStorage.removeItem('board:scale'); } catch {}
 </script>
 </body>
 </html>

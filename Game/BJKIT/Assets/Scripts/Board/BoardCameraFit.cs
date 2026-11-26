@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BJKIT.BoardGame
@@ -19,18 +20,34 @@ namespace BJKIT.BoardGame
 
         Camera cam;
         int lastW, lastH;
-        Vector3 lastBoardCentre;
+        Vector3 lastBoardCentre, lastBoardSize;
 
         void OnEnable() { cam = GetComponent<Camera>(); lastW = 0; }
         void OnValidate() { lastW = 0; }
+
+        /// Fit again on the next frame (e.g. after Tools > Board > Spread Board).
+        public void Refit() { lastW = 0; }
+
+        /// Fit right now, as if the view had this aspect (width / height); used by editor tools that need
+        /// the camera position immediately (Spread Board sizes the terrain from what the camera sees).
+        public void FitNow(float aspect)
+        {
+            if (!cam) cam = GetComponent<Camera>();
+            if (!board) board = FindAnyObjectByType<Board>();
+            if (!board || !cam) return;
+            cam.aspect = aspect;
+            Fit(BoardBounds());
+            cam.ResetAspect();
+            lastW = 0;
+        }
 
         void LateUpdate()
         {
             if (!board) board = FindAnyObjectByType<Board>();
             if (!board || !cam) return;
             var b = BoardBounds();
-            if (cam.pixelWidth == lastW && cam.pixelHeight == lastH && b.center == lastBoardCentre) return;
-            lastW = cam.pixelWidth; lastH = cam.pixelHeight; lastBoardCentre = b.center;
+            if (cam.pixelWidth == lastW && cam.pixelHeight == lastH && b.center == lastBoardCentre && b.size == lastBoardSize) return;
+            lastW = cam.pixelWidth; lastH = cam.pixelHeight; lastBoardCentre = b.center; lastBoardSize = b.size;
             Fit(b);
         }
 
@@ -48,30 +65,63 @@ namespace BJKIT.BoardGame
             return b;
         }
 
+        // The points that must be on screen: around every node (not the corners of the board's bounding box:
+        // at a 45° tilt the empty front corners of that box pushed the camera much further back than needed).
+        Vector3[] FitPoints()
+        {
+            float r = Mathf.Max(board.nodeDiameter, board.specialDiameter) * 0.7f;
+            var pts = new List<Vector3>();
+            foreach (var n in board.Nodes)
+            {
+                var p = n.transform.position;
+                pts.Add(p + new Vector3(-r, 0f, -r)); pts.Add(p + new Vector3(r, 0f, -r));
+                pts.Add(p + new Vector3(-r, 0f, r)); pts.Add(p + new Vector3(r, 2f, r));
+            }
+            return pts.ToArray();
+        }
+
         void Fit(Bounds b)
         {
             var rot = Quaternion.Euler(pitch, yaw, 0f);
             transform.rotation = rot;
-            Vector3 aim = b.center + aimOffset;
             Vector3 fwd = rot * Vector3.forward;
+            Vector3 right = rot * Vector3.right;
+            Vector3 groundUp = Vector3.ProjectOnPlane(rot * Vector3.up, Vector3.up).normalized;   // "up the screen" on the ground
+            var pts = FitPoints();
+            Vector3 aim = b.center;
 
-            var corners = new Vector3[8];
-            for (int i = 0; i < 8; i++)
-                corners[i] = new Vector3(
-                    (i & 1) == 0 ? b.min.x : b.max.x,
-                    (i & 2) == 0 ? b.min.y : b.max.y,
-                    (i & 4) == 0 ? b.min.z : b.max.z);
+            // fit the distance, then nudge the aim so the nodes sit centred on screen; a few rounds settle it
+            float dist = 100f;
+            for (int round = 0; round < 4; round++)
+            {
+                dist = FitDistance(aim + aimOffset, fwd, pts);
+                float x0 = 1f, x1 = 0f, y0 = 1f, y1 = 0f;
+                foreach (var p in pts)
+                {
+                    var v = cam.WorldToViewportPoint(p);
+                    x0 = Mathf.Min(x0, v.x); x1 = Mathf.Max(x1, v.x); y0 = Mathf.Min(y0, v.y); y1 = Mathf.Max(y1, v.y);
+                }
+                float h = 2f * dist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);   // view height at the aim
+                aim += right * ((x0 + x1) * 0.5f - 0.5f) * h * cam.aspect
+                     + groundUp * ((y0 + y1) * 0.5f - 0.5f) * h / Mathf.Max(0.2f, Mathf.Sin(pitch * Mathf.Deg2Rad));
+            }
+            dist = FitDistance(aim + aimOffset, fwd, pts);
+            transform.position = aim + aimOffset - fwd * dist;
+            if (cam.farClipPlane < dist * 4f) cam.farClipPlane = dist * 4f;
+        }
 
-            // binary search the distance where the board just fits inside [margin, 1 - margin]
+        // binary search the distance where every point just fits inside [margin, 1 - margin]
+        float FitDistance(Vector3 aim, Vector3 fwd, Vector3[] pts)
+        {
             float lo = 5f, hi = 2000f;
             for (int k = 0; k < 40; k++)
             {
                 float d = (lo + hi) * 0.5f;
                 transform.position = aim - fwd * d;
-                if (Fits(corners)) hi = d; else lo = d;
+                if (Fits(pts)) hi = d; else lo = d;
             }
             transform.position = aim - fwd * hi;
-            if (cam.farClipPlane < hi * 3f) cam.farClipPlane = hi * 3f;
+            return hi;
         }
 
         bool Fits(Vector3[] corners)

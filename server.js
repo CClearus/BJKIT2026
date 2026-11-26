@@ -194,12 +194,11 @@ const playerSamples = (list) => (Array.isArray(list) ? list : []).slice(0, 20)
 
 // "Made by": [{ name, avatar }]. avatar is a picture uploaded through /api/upload, or ''.
 // Older problems stored plain name strings; those still load and become { name, avatar: '' } on save.
-const AVATAR_URL = /^uploads\/[a-f0-9]{32}\.(?:png|jpg|gif|webp)$/;
+// credits (madeBy = โจทย์โดย, reviewedBy = ผู้ทาน): [{ name, rank }], rank may be ''
 function cleanAuthors(v) {
-  return (Array.isArray(v) ? v : [v]).slice(0, 20).map((a) => {
+  return (v == null ? [] : Array.isArray(v) ? v : [v]).slice(0, 20).map((a) => {
     const o = a && typeof a === 'object' ? a : { name: a };
-    const avatar = String(o.avatar || '');
-    return { name: String(o.name ?? '').slice(0, 100).trim(), avatar: AVATAR_URL.test(avatar) ? avatar : '' };
+    return { name: String(o.name ?? '').slice(0, 100).trim(), rank: String(o.rank ?? '').slice(0, 100).trim() };
   }).filter((a) => a.name);
 }
 
@@ -211,6 +210,7 @@ function cleanProblem(body) {
     name: str(body.name, 200).trim(),
     difficulty: normalizeLevel(body.difficulty),
     madeBy: cleanAuthors(body.madeBy),
+    reviewedBy: cleanAuthors(body.reviewedBy),
     timeLimit: num(body.timeLimit, 0.1, LIMITS.maxRunTimeoutMs / 1000, 1),
     memoryLimit: Math.round(num(body.memoryLimit, 1, 4096, 256)),
     statement: str(body.statement, 1e6),
@@ -490,6 +490,7 @@ const MIME = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
   '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff': 'font/woff', '.woff2': 'font/woff2',
   '.mp4': 'video/mp4', '.webm': 'video/webm',
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
   '.wasm': 'application/wasm', '.data': 'application/octet-stream',   // Unity WebGL board (public/game/)
 };
 
@@ -602,9 +603,15 @@ function imageType(buf) {
   if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
   return null;
 }
+// video (mp4, webm) or sound (mp3, wav, ogg, m4a) file, from its first bytes
 function videoType(buf) {
-  if (buf.length > 12 && buf.toString('ascii', 4, 8) === 'ftyp') return 'mp4';   // .mp4 / .m4v / .mov-style files
+  if (buf.length > 12 && buf.toString('ascii', 4, 8) === 'ftyp') {
+    return /^M4[AB] /.test(buf.toString('ascii', 8, 12)) ? 'm4a' : 'mp4';   // .m4a sound / .mp4 / .m4v / .mov-style files
+  }
   if (buf.length > 4 && buf.readUInt32BE(0) === 0x1a45dfa3) return 'webm';
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE') return 'wav';
+  if (buf.length > 4 && buf.toString('ascii', 0, 4) === 'OggS') return 'ogg';
+  if (buf.length > 3 && (buf.toString('ascii', 0, 3) === 'ID3' || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0))) return 'mp3';
   return null;
 }
 
@@ -885,9 +892,9 @@ async function handle(req, res) {
   if (pathname === '/api/upload-video' && method === 'POST') {
     let buf;
     try { buf = await readBody(req, LIMITS.maxVideoBytes); }
-    catch { return sendJson(res, 413, { error: 'Video is too large (max 100 MB).' }); }
+    catch { return sendJson(res, 413, { error: 'File is too large (max 100 MB).' }); }
     const type = videoType(buf);
-    if (!type) return sendJson(res, 400, { error: 'Only MP4 and WebM videos are allowed.' });
+    if (!type) return sendJson(res, 400, { error: 'Only MP4/WebM videos and MP3/WAV/OGG/M4A sounds are allowed.' });
     const name = crypto.randomBytes(16).toString('hex') + '.' + type;
     await fsp.writeFile(path.join(UPLOAD_DIR, name), buf);
     return sendJson(res, 201, { url: 'uploads/' + name });
@@ -1006,10 +1013,10 @@ async function handle(req, res) {
 
   if (method !== 'GET') { res.writeHead(405); return res.end(); }
 
-  const upload = pathname.match(/^\/uploads\/([a-f0-9]{32}\.(?:png|jpg|gif|webp|mp4|webm))$/);
+  const upload = pathname.match(/^\/uploads\/([a-f0-9]{32}\.(?:png|jpg|gif|webp|mp4|webm|mp3|wav|ogg|m4a))$/);
   if (upload) {
     const file = path.join(UPLOAD_DIR, upload[1]);
-    return /\.(mp4|webm)$/.test(file) ? serveMedia(req, res, file) : serveFile(res, file);
+    return /\.(mp4|webm|mp3|wav|ogg|m4a)$/.test(file) ? serveMedia(req, res, file) : serveFile(res, file);
   }
 
   const loadingGif = pathname.match(/^\/loading-gif\/([^/]+)$/);

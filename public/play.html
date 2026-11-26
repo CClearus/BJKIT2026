@@ -728,6 +728,15 @@ function saveCode() {
 window.addEventListener('pagehide', saveCode);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveCode(); });
 $('back-map').addEventListener('click', saveCode);
+// Opened from the main page, this page sits in a frame over the map (index.html SubPage) so the board
+// stays loaded: "← Map" then closes the frame instead of loading the main page again.
+const HOST = (() => { try { return window.parent !== window && window.parent.SubPage ? window.parent.SubPage : null; } catch { return null; } })();
+const TAB = HOST ? window.top : window;   // page-level moves (Admin) go to the whole tab
+$('back-map').addEventListener('click', (e) => {
+  if (!HOST || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  e.preventDefault();
+  HOST.close();
+});
 
 // What the server compiles: one file, or both players' files
 function programBody() {
@@ -790,6 +799,7 @@ async function openProblem(id) {
   if (CLAN) await loadClanHints(problem);
   store.set('problem', id);
   history.replaceState(null, '', '#problem=' + encodeURIComponent(id));
+  if (HOST) HOST.sync(location.hash);
   $('paper').dataset.view = 'global';   // a new problem starts on the Global objective
   await myClanReady;
   renderPaper();
@@ -1116,7 +1126,7 @@ $('submit').addEventListener('click', submit);
 // ` (outside text boxes) opens the Admin page, which asks for the admin password
 document.addEventListener('keydown', (e) => {
   if (e.key === '`' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input, textarea, select, [contenteditable]')) {
-    e.preventDefault(); location.href = 'admin.html';
+    e.preventDefault(); TAB.location.href = 'admin.html';
   }
 });
 document.addEventListener('keydown', (e) => {

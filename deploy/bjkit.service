@@ -1,0 +1,24 @@
+[Unit]
+Description=BJKIT2026 camp site (node server.js)
+After=network.target
+
+[Service]
+User=camp
+WorkingDirectory=/opt/bjkit
+ExecStart=/usr/bin/node server.js
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+Restart=always
+RestartSec=2
+
+# Students' C programs run as this user, so lock it down:
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/bjkit/data
+TasksMax=200
+MemoryMax=1500M
+
+[Install]
+WantedBy=multi-user.target

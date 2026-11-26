@@ -15,11 +15,19 @@ using UnityEngine;
 public static class BoardSketchBuilder
 {
     // ---- sketch -> world ----
-    const float MetresPerPixel = 0.152f;               // sketch span 1053 px -> 160 m
+    const float BaseMetresPerPixel = 0.152f;           // sketch span 1053 px -> 160 m (before any spread)
     static readonly Vector2 SketchCentre = new Vector2(691.5f, 401f);
     static readonly Vector2 WorldCentre = new Vector2(8.5f, 6.7f);   // x, z (centre of the terrain)
-    const float TerrainWidth = 180f;
-    const float TerrainDepth = 100f;
+    const float BaseTerrainWidth = 180f;
+    const float BaseTerrainDepth = 100f;
+
+    // Tools > Board > Spread Board scales the layout out from WorldCentre and stores the factor on the Board,
+    // so a later Build From Sketch rebuilds at the same spread. (Spread Board also adds a border of extra
+    // terrain around the layout; SizeTerrain leaves a bigger terrain alone.)
+    static float layoutScale = 1f;
+    static float MetresPerPixel => BaseMetresPerPixel * layoutScale;
+    static float TerrainWidth => BaseTerrainWidth * layoutScale;
+    static float TerrainDepth => BaseTerrainDepth * layoutScale;
 
     // Camera looks from +Z toward -Z, so sketch right = world -X and sketch down = world +Z (nearer the camera).
     static Vector3 ToWorld(float px, float py) => new Vector3(
@@ -96,29 +104,38 @@ public static class BoardSketchBuilder
     // Railway: a ring West -> North -> River -> Mine -> West (ride to a neighbouring station).
     static readonly (int, int)[] RailRing = { (165, 352), (545, 192), (900, 600), (430, 690) };
 
-    // Palette from the sketch (dark blues + yellows), navy darkened so it reads navy under the bright sun.
-    static readonly Color NavyDark = Hex("00004A");
-    static readonly Color Navy = Hex("000040");
-    static readonly Color NavyLight = Hex("00005A");
-    static readonly Color YellowDeep = Hex("FDC40B");
-    static readonly Color YellowMid = Hex("FCE036");
-    static readonly Color YellowBright = Hex("FDF500");
+    // Party-board-game palette (bright, saturated token centres, white rims). Change a colour here, then
+    // Tools > Board > Rebuild Visuals. Each type keeps its own colour so it reads at a glance:
+    static readonly Color TokNormal = Hex("2E7CF6");    // blue: an ordinary step
+    static readonly Color TokEvent = Hex("E8473B");     // red: something happens
+    static readonly Color TokSpecial = Hex("FFC21A");   // gold, glowing: the 5 specials
+    static readonly Color TokShop = Hex("9B5CF6");      // purple diamond: shop
+    static readonly Color TokStart = Hex("FFF6E0");     // cream centre with a gold rim: the Saloon start
+    static readonly Color TokStation = Hex("F08A24");   // orange on a wooden platform: railway station
+    static readonly Color TokTunnel = Hex("2EC8E6");    // cyan: the mine tunnel pair
+    static readonly Color RimWhite = Hex("FFFFFF");
+    static readonly Color RimGold = Hex("FFC21A");
     static readonly Color Wood = Hex("7A4A22");
-    static readonly Color TunnelBlue = Hex("3CAAF0");
+    // Paths: near-white core with a soft green glow (like the reference board game). HDR core = slight bloom.
+    static readonly Color PathCore = new Color(1.7f, 1.75f, 1.6f, 1f);
+    static readonly Color PathGlow = new Color(0.45f, 1f, 0.4f, 0.55f);
 
     const string MatDir = "Assets/Board/Materials";
 
     [MenuItem("Tools/Board/Build From Sketch")]
     public static void Build()
     {
+        var existing = GameObject.Find("Board");
+        var oldBoard = existing ? existing.GetComponent<Board>() : null;
+        layoutScale = oldBoard && oldBoard.layoutScale > 0f ? oldBoard.layoutScale : 1f;
         SizeTerrain();
 
-        var existing = GameObject.Find("Board");
         if (existing) Undo.DestroyObjectImmediate(existing);
 
         var rootGo = new GameObject("Board");
         Undo.RegisterCreatedObjectUndo(rootGo, "Build Board");
         var board = rootGo.AddComponent<Board>();
+        board.layoutScale = layoutScale;
         AssignMaterials(board);
 
         var nodesRoot = new GameObject("Nodes");
@@ -202,9 +219,10 @@ public static class BoardSketchBuilder
     {
         var t = Terrain.activeTerrain;
         if (!t) return;
+        var s = t.terrainData.size;
+        if (s.x > TerrainWidth + 0.5f && s.z > TerrainDepth + 0.5f) return;   // already bigger (Spread Board border): keep it
         Undo.RecordObject(t.terrainData, "Size terrain");
         Undo.RecordObject(t.transform, "Size terrain");
-        var s = t.terrainData.size;
         t.terrainData.size = new Vector3(TerrainWidth, s.y, TerrainDepth);
         var p = t.transform.position;
         t.transform.position = new Vector3(WorldCentre.x - TerrainWidth / 2f, p.y, WorldCentre.y - TerrainDepth / 2f);
@@ -323,37 +341,62 @@ public static class BoardSketchBuilder
 
     static void AssignMaterials(Board b)
     {
-        b.normalMat = Mat("Node_Normal", Navy, 0f);
-        b.specialMat = Mat("Node_Special", YellowDeep, 0.6f);
-        b.eventMat = Mat("Node_Event", NavyLight, 0f);
-        b.eventRingMat = Mat("Node_EventRing", YellowMid, 0f);
-        b.shopMat = Mat("Node_Shop", YellowBright, 0.3f);
-        b.startMat = Mat("Node_Start", NavyLight, 0f);
-        b.stationMat = Mat("Node_Station", Wood, 0f);
-        b.tunnelMat = Mat("Node_Tunnel", TunnelBlue, 0.25f);
-        b.edgeMat = Mat("Edge", NavyDark, 0f, unlit: true);
+        b.normalMat = Mat("Node_Normal", TokNormal, RimWhite, 0f);
+        b.specialMat = Mat("Node_Special", TokSpecial, RimWhite, 0.7f);
+        b.eventMat = Mat("Node_Event", TokEvent, RimWhite, 0f);
+        b.shopMat = Mat("Node_Shop", TokShop, RimWhite, 0f);
+        b.startMat = Mat("Node_Start", TokStart, RimGold, 0f);
+        b.stationMat = Mat("Node_Station", TokStation, RimWhite, 0f);
+        b.tunnelMat = Mat("Node_Tunnel", TokTunnel, RimWhite, 0.2f);
+        b.platformMat = Mat("Node_Platform", Wood, Wood, 0f);   // plain cube: no vertex colours, so Rim = Colour
+        b.blobMat = BlobMat("Node_Shadow");
+        b.pathMat = PathMat("Path");
         EditorUtility.SetDirty(b);
     }
 
-    static Material Mat(string name, Color c, float glow, bool unlit = false)
+    // Tokens use BJKIT/BoardToken: chunky plastic look (soft sun shading + gloss), no shadows, fog or SSAO,
+    // so they always read as a clear layer on top of the world.
+    static Material Mat(string name, Color centre, Color rim, float glow)
+    {
+        var shader = Shader.Find("BJKIT/BoardToken");
+        var m = LoadOrCreate(name, shader);
+        m.shader = shader;
+        m.SetColor("_BaseColor", centre);
+        m.SetColor("_RimColor", rim);
+        m.SetColor("_EmissionColor", glow > 0f ? centre * glow : Color.black);
+        EditorUtility.SetDirty(m);
+        return m;
+    }
+
+    static Material PathMat(string name)
+    {
+        var shader = Shader.Find("BJKIT/BoardPath");
+        var m = LoadOrCreate(name, shader);
+        m.shader = shader;
+        m.SetColor("_CoreColor", PathCore);
+        m.SetColor("_GlowColor", PathGlow);
+        EditorUtility.SetDirty(m);
+        return m;
+    }
+
+    static Material BlobMat(string name)
+    {
+        var shader = Shader.Find("BJKIT/BoardBlob");
+        var m = LoadOrCreate(name, shader);
+        m.shader = shader;
+        m.SetColor("_BaseColor", new Color(0.12f, 0.08f, 0.05f, 0.35f));
+        m.SetFloat("_Softness", 0.55f);
+        EditorUtility.SetDirty(m);
+        return m;
+    }
+
+    static Material LoadOrCreate(string name, Shader shader)
     {
         if (!AssetDatabase.IsValidFolder("Assets/Board")) AssetDatabase.CreateFolder("Assets", "Board");
         if (!AssetDatabase.IsValidFolder(MatDir)) AssetDatabase.CreateFolder("Assets/Board", "Materials");
         string path = $"{MatDir}/{name}.mat";
-        var shader = Shader.Find(unlit ? "Universal Render Pipeline/Unlit" : "Universal Render Pipeline/Lit");
         var m = AssetDatabase.LoadAssetAtPath<Material>(path);
         if (!m) { m = new Material(shader); AssetDatabase.CreateAsset(m, path); }
-        m.shader = shader;
-        m.SetColor("_BaseColor", c);
-        if (m.HasProperty("_Cull")) m.SetFloat("_Cull", 0f);          // both sides (flat line ribbons)
-        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.2f);
-        if (glow > 0f && m.HasProperty("_EmissionColor"))
-        {
-            m.EnableKeyword("_EMISSION");
-            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
-            m.SetColor("_EmissionColor", c * glow);
-        }
-        EditorUtility.SetDirty(m);
         return m;
     }
 

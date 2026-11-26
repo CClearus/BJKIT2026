@@ -2,12 +2,13 @@
 (function () {
   // ---------- HTML sanitizer (only safe formatting survives) ----------
   const ALLOWED = {
-    P: [], DIV: [], BR: [], B: [], STRONG: [], I: [], EM: [], U: [], S: [], SUB: [], SUP: [],
+    P: [], DIV: [], BR: [], B: [], STRONG: [], I: [], EM: [], U: [], S: [], STRIKE: [], DEL: [], SUB: [], SUP: [],
     CODE: [], PRE: [], H3: [], H4: [], UL: [], OL: [], LI: [], BLOCKQUOTE: [], SPAN: [], HR: [],
     TABLE: [], THEAD: [], TBODY: [], TR: [], TD: ['colspan', 'rowspan'], TH: ['colspan', 'rowspan'],
     IMG: ['src', 'alt'], A: ['href'],
-    // a video is stored as <figure data-video="link"></figure> and turned into a player when shown
-    FIGURE: ['data-video'],
+    // a video or sound is stored as <figure data-video="link"></figure> and turned into a player when shown;
+    // data-sound="only" = a video that plays its sound with the picture hidden
+    FIGURE: ['data-video', 'data-sound'],
   };
   const DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'LINK', 'META', 'TEMPLATE', 'SVG', 'MATH', 'FORM', 'INPUT', 'TEXTAREA', 'BUTTON', 'SELECT']);
   const STYLE_OK = new Set(['text-align', 'width', 'display', 'margin-left', 'margin-right']);
@@ -46,6 +47,7 @@
         const v = parseVideo(child.getAttribute('data-video'));
         if (!v) { cleanNode(child); child.replaceWith(...child.childNodes); continue; }
         child.setAttribute('data-video', v.url);
+        if (child.getAttribute('data-sound') !== 'only' || v.audio) child.removeAttribute('data-sound');
         child.textContent = '';
         continue;
       }
@@ -70,36 +72,42 @@
     return !doc.body.textContent.trim() && !doc.body.querySelector('img, figure[data-video]');
   }
 
-  // ---------- videos ----------
-  // An MP4/WebM video: one uploaded to this site (uploads/<id>.mp4), or a direct link to a video file.
-  // Returns { src, url } with url = what gets stored, or null.
-  const VIDEO_UPLOAD = /^\/?uploads\/[a-f0-9]{32}\.(?:mp4|webm)$/;
+  // ---------- videos and sounds ----------
+  // An MP4/WebM video or an MP3/WAV/OGG/M4A sound: one uploaded to this site (uploads/<id>.mp4),
+  // or a direct link to the file.
+  // Returns { src, url, audio } with url = what gets stored (audio = a sound file, no picture), or null.
+  const MEDIA_UPLOAD = /^\/?uploads\/[a-f0-9]{32}\.(?:mp4|webm|mp3|wav|ogg|m4a)$/;
+  const AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|aac|opus)$/i;
   function parseVideo(link) {
     const s = String(link || '').trim();
-    if (VIDEO_UPLOAD.test(s)) { const url = s.replace(/^\//, ''); return { src: url, url }; }
+    if (MEDIA_UPLOAD.test(s)) { const url = s.replace(/^\//, ''); return { src: url, url, audio: AUDIO_EXT.test(url) }; }
     let u;
     try { u = new URL(s); } catch { return null; }
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
-    return /\.(mp4|webm|m4v|ogv|mov)$/i.test(u.pathname) ? { src: u.href, url: u.href } : null;
+    if (AUDIO_EXT.test(u.pathname)) return { src: u.href, url: u.href, audio: true };
+    return /\.(mp4|webm|m4v|ogv|mov)$/i.test(u.pathname) ? { src: u.href, url: u.href, audio: false } : null;
   }
 
-  // Turn every stored <figure data-video> inside root into a video that plays on its own, looping,
-  // with the sound on at half volume.
+  // Turn every stored <figure data-video> inside root into a player that plays on its own, looping:
+  // a video with the sound on at half volume, or (a sound file, or a video set to "sound only")
+  // a small sound bar at full volume.
   // Browsers block sound until the viewer has clicked or pressed a key on the page. If that happens
   // the video plays muted for now and the sound comes on with the viewer's first click or key press.
   const VIDEO_VOLUME = 0.5;
+  const SOUND_VOLUME = 1;
   const waitingForSound = new Set();
   const UNMUTE_EVENTS = ['pointerdown', 'keydown', 'touchend'];
   function unmuteWaiting(e) {
     for (const m of waitingForSound) {
       // a click on the video itself is left to its own controls (e.g. its mute button)
-      if (m !== e.target && m.isConnected) { m.volume = VIDEO_VOLUME; m.muted = false; }
+      if (m !== e.target && m.isConnected) { m.volume = m.wantVolume; m.muted = false; }
     }
     waitingForSound.clear();
     for (const t of UNMUTE_EVENTS) document.removeEventListener(t, unmuteWaiting, true);
   }
-  function playWithSound(media) {
-    media.volume = VIDEO_VOLUME;
+  function playWithSound(media, volume) {
+    media.wantVolume = volume;
+    media.volume = volume;
     media.muted = false;
     const started = media.play();
     if (!started) return;
@@ -114,12 +122,15 @@
     for (const fig of root.querySelectorAll('figure[data-video]')) {
       const v = parseVideo(fig.getAttribute('data-video'));
       if (!v) { fig.remove(); continue; }
-      fig.className = 'p-video';
+      const soundOnly = v.audio || fig.getAttribute('data-sound') === 'only';
+      fig.className = soundOnly ? 'p-video p-sound' : 'p-video';
       fig.textContent = '';
-      const media = document.createElement('video');
-      Object.assign(media, { loop: true, playsInline: true, controls: true, preload: 'auto', src: v.src });
+      // an <audio> player also plays just the sound of a video file
+      const media = document.createElement(soundOnly ? 'audio' : 'video');
+      Object.assign(media, { loop: true, controls: true, preload: 'auto', src: v.src });
+      if (!soundOnly) media.playsInline = true;
       fig.appendChild(media);
-      playWithSound(media);
+      playWithSound(media, soundOnly ? SOUND_VOLUME : VIDEO_VOLUME);
     }
   }
 
@@ -186,26 +197,13 @@
     problem: (n) => `Problem ${n}`, time: 'Time limit', memory: 'Memory limit',
     seconds: (n) => `${n} second${Number(n) === 1 ? '' : 's'}`, mb: (n) => `${n} MB`,
     input: 'Input', output: 'Output', constraints: 'Constraints', example: 'Example', examples: 'Examples',
-    copy: 'Copy', copied: 'Copied', use: 'Use ↗', madeBy: 'Made by', special: 'Special',
+    copy: 'Copy', copied: 'Copied', use: 'Use ↗', madeBy: 'โจทย์โดย', reviewedBy: 'ผู้ทาน', special: 'Special',
   };
-  // "Made by": a list of { name, avatar }. Older problems stored plain names (or one name).
-  const authorList = (v) => (Array.isArray(v) ? v : [v]).map((x) => {
+  // Credits (madeBy / reviewedBy): a list of { name, rank }. Older problems stored plain names (or one name).
+  const authorList = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]).map((x) => {
     const o = x && typeof x === 'object' ? x : { name: x };
-    return { name: String(o.name ?? '').trim(), avatar: String(o.avatar || '') };
+    return { name: String(o.name ?? '').trim(), rank: String(o.rank ?? '').trim() };
   }).filter((a) => a.name);
-  // a round picture, or the first letter of the name when there is no picture
-  function avatarEl(a, cls) {
-    if (/^uploads\/[a-f0-9]{32}\.(?:png|jpg|gif|webp)$/.test(a.avatar)) {
-      const img = el('img', cls);
-      img.src = a.avatar;
-      img.alt = '';
-      img.loading = 'lazy';
-      return img;
-    }
-    const span = el('span', cls + ' initial', [...a.name][0].toUpperCase());
-    span.setAttribute('aria-hidden', 'true');
-    return span;
-  }
 
   // ---------- rendering ----------
   function section(paper, title, html) {
@@ -397,21 +395,27 @@
     show(start);
 
 
+    // credits: each group (and each rank) only shows when it is filled in
     const credits = el('footer', 'p-credits');
-    const authors = authorList(p.madeBy);
-    credits.appendChild(el('span', 'c-key', L.madeBy));
-    if (authors.length) {
+    for (const [field, label] of [['madeBy', L.madeBy], ['reviewedBy', L.reviewedBy]]) {
+      const people = authorList(p[field]);
+      if (!people.length) continue;
+      const group = el('div', 'c-group');
+      group.appendChild(el('span', 'c-key', label));
       const names = el('ul', 'c-names');
-      for (const a of authors) {
+      for (const a of people) {
         const li = el('li');
-        li.append(avatarEl(a, 'c-av'), el('span', 'c-name', a.name));
+        li.appendChild(el('span', 'c-name', a.name));
+        if (a.rank) li.appendChild(el('span', 'c-rank', a.rank));
         names.appendChild(li);
       }
-      credits.appendChild(names);
-    } else credits.appendChild(el('span', 'c-val placeholder', '—'));
-    paper.appendChild(credits);
-
-    renderMath(credits);
+      group.appendChild(names);
+      credits.appendChild(group);
+    }
+    if (credits.children.length) {
+      paper.appendChild(credits);
+      renderMath(credits);
+    }
     ThaiDistribute.apply(paper);
   }
 

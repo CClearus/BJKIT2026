@@ -277,24 +277,10 @@
   .fields.second { grid-template-columns: 1fr 1fr; margin-top: 12px; }
   .authors { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
   .author-row { display: flex; align-items: center; gap: 6px; animation: popIn .2s ease-out; }
-  /* round profile picture: click (or drop an image) to set it, ✕ on hover to remove it */
-  .author-av { position: relative; flex: none; width: 36px; height: 36px; }
-  .author-row .author-av .av-pick {
-    width: 100%; height: 100%; padding: 0; border-radius: 50%; overflow: hidden;
-    display: grid; place-items: center; border: 1px dashed var(--border);
-    background: var(--surface-2); color: var(--muted); font: 600 .85rem/1 var(--font-ui);
-  }
-  .author-row .author-av .av-pick:hover, .author-av.drop .av-pick { border-color: var(--accent); color: var(--accent); }
-  .author-av.has .av-pick { border-style: solid; }
-  .author-av .av-pick img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .author-av .av-pick svg { width: 16px; height: 16px; }
-  .author-av.busy .av-pick { opacity: .5; cursor: progress; }
-  .author-row .author-av .av-remove {
-    position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; padding: 0; border-radius: 50%;
-    display: none; place-items: center; font-size: 10px; line-height: 1; background: var(--surface);
-  }
-  .author-av.has:hover .av-remove, .author-av.has:focus-within .av-remove { display: grid; }
   .author-row input { flex: 1; min-width: 0; }
+  .author-row input.a-rank { flex: .8; }
+  .credit-group + .credit-group { margin-top: 14px; }
+  .credit-group h4 { margin: 0 0 6px; font-size: .85rem; }
   .author-row button { padding: 6px 10px; }
   label.f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--muted); }
   label.f input, label.f select { font-weight: 400; color: var(--text); width: 100%; }
@@ -344,7 +330,13 @@
     color: var(--muted); font: .82rem/1.45 var(--font-ui); user-select: none; cursor: default;
   }
   .rich-body figure[data-video] .vid-thumb { flex: none; width: 112px; height: 63px; border-radius: 6px; background: #000; object-fit: cover; }
-  .rich-body figure[data-video]::after { content: "Video · plays on its own, muted, and loops"; }
+  .rich-body figure[data-video]::after { content: "Video · plays on its own with sound, and loops"; order: 1; }
+  .rich-body figure[data-video][data-sound="only"]::after { content: "Sound only · the picture is hidden, plays on its own at full volume, and loops"; }
+  .rich-body figure[data-video].is-audio::after { content: "Sound · plays on its own at full volume, and loops"; }
+  .rich-body figure[data-video][data-sound="only"] .vid-thumb { opacity: .3; }
+  .rich-body figure[data-video] .vid-thumb.sound { display: grid; place-items: center; font-size: 1.6rem; color: #fff; }
+  .rich-body figure[data-video] .vid-sound { order: 2; margin-left: auto; flex: none; padding: 4px 10px; font-size: .78rem; }
+  .rich-body figure[data-video] .vid-sound[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
   .rich-body figure[data-video] .vid-x {
     position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; padding: 0; border-radius: 6px;
     display: grid; place-items: center; font-size: .75rem; color: var(--err); background: transparent; border-color: transparent;
@@ -669,9 +661,17 @@
     </div>
 
     <div class="block">
-      <div class="head"><h3>Made by</h3><small>Everyone who wrote this problem. Shown at the bottom of the paper.</small></div>
-      <div class="authors" id="f-authors"></div>
-      <button type="button" id="add-author">＋ Add author</button>
+      <div class="head"><h3>Credits</h3><small>Shown at the bottom of the paper. The rank appears under the name; leave it blank to hide it. An empty group is not shown.</small></div>
+      <div class="credit-group">
+        <h4>โจทย์โดย</h4>
+        <div class="authors" id="f-authors"></div>
+        <button type="button" id="add-author">＋ Add person</button>
+      </div>
+      <div class="credit-group">
+        <h4>ผู้ทาน</h4>
+        <div class="authors" id="f-reviewers"></div>
+        <button type="button" id="add-reviewer">＋ Add person</button>
+      </div>
     </div>
 
     </div>
@@ -785,6 +785,7 @@
     <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
     <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
     <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+    <button type="button" data-cmd="strikeThrough" title="Strikethrough (ขีดฆ่า)"><s>S</s></button>
     <span class="sep"></span>
     <button type="button" data-cmd="h3" title="Heading">H</button>
     <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
@@ -803,7 +804,7 @@
     <span class="sep"></span>
     <button type="button" data-cmd="image" title="Insert picture">🖼 Picture</button>
     <button type="button" data-cmd="table" title="Insert a table">▦ Table</button>
-    <button type="button" data-cmd="video" title="Add an MP4 video (plays on its own, muted)">▶ Video</button>
+    <button type="button" data-cmd="video" title="Add a video or a sound (plays on its own)">▶ Video / ♪ Sound</button>
     <button type="button" data-cmd="removeFormat" title="Clear formatting">⌫ Clear</button>
   </div>
   <div class="math-palette" hidden></div>
@@ -812,13 +813,13 @@
     <div class="tp-size">Pick a size</div>
   </div>
   <form class="video-pop" hidden>
-    <button type="button" class="primary vp-file">Choose video file…</button>
+    <button type="button" class="primary vp-file">Choose video or sound file…</button>
     <span class="vp-or">or</span>
-    <input type="url" class="vp-link" placeholder="Paste a link to an .mp4 file" aria-label="Link to an MP4 file">
+    <input type="url" class="vp-link" placeholder="Paste a link to an .mp4 or .mp3 file" aria-label="Link to a video or sound file">
     <button type="submit">Add link</button>
     <button type="button" class="vp-cancel">Cancel</button>
     <div class="vp-bar" hidden><span></span></div>
-    <p class="vp-msg">MP4 or WebM, up to 100 MB. You can also drop a video file into the text. It plays on its own, muted, and loops.</p>
+    <p class="vp-msg">Video: MP4 or WebM. Sound: MP3, WAV, OGG or M4A. Up to 100 MB. You can also drop the file into the text. It plays on its own with sound, and loops.</p>
   </form>
   <div class="table-tools" hidden>
     <span class="tt-label">Table</span>
@@ -951,6 +952,15 @@ for (const box of document.querySelectorAll('.rich')) {
     if (align) { e.preventDefault(); document.execCommand(align, false, null); updateAlignButtons(); changed(); }
   });
   body.addEventListener('click', (e) => {
+    const snd = e.target.closest('.vid-sound');
+    if (snd) {
+      const fig = snd.closest('figure');
+      const on = fig.getAttribute('data-sound') !== 'only';
+      if (on) fig.setAttribute('data-sound', 'only'); else fig.removeAttribute('data-sound');
+      snd.setAttribute('aria-pressed', String(on));
+      changed();
+      return;
+    }
     const x = e.target.closest('.vid-x');
     if (!x) return;
     x.closest('figure').remove();
@@ -1063,20 +1073,22 @@ function toggleVideoPop(box, body) {
     pop.querySelector('.vp-file').focus();
   }
 }
-const VIDEO_HELP = 'MP4 or WebM, up to 100 MB. You can also drop a video file into the text. It plays on its own, muted, and loops.';
+const VIDEO_HELP = 'Video: MP4 or WebM. Sound: MP3, WAV, OGG or M4A. Up to 100 MB. You can also drop the file into the text. It plays on its own with sound, and loops. Click "Sound only" on a video to hide its picture.';
 function videoMsg(pop, text, isErr = false) {
   const msg = pop.querySelector('.vp-msg');
   msg.className = 'vp-msg' + (isErr ? ' err' : '');
   msg.textContent = text || VIDEO_HELP;
 }
-const isVideoFile = (f) => /^video\/(mp4|webm|quicktime|x-m4v)$/.test(f.type) || /\.(mp4|m4v|webm)$/i.test(f.name);
-const hasVideoFiles = (dt) => dt && [...dt.items || []].some((i) => i.kind === 'file' && i.type.startsWith('video/'));
+// a video or sound file
+const isVideoFile = (f) => /^(video\/(mp4|webm|quicktime|x-m4v)|audio\/(mpeg|mp3|wav|x-wav|wave|vnd\.wave|ogg|mp4|x-m4a|m4a))$/.test(f.type)
+  || /\.(mp4|m4v|webm|mp3|wav|ogg|m4a)$/i.test(f.name);
+const hasVideoFiles = (dt) => dt && [...dt.items || []].some((i) => i.kind === 'file' && /^(video|audio)\//.test(i.type));
 
 // Upload with a progress callback (fetch can't report upload progress).
 function uploadVideo(file, onProgress) {
   return new Promise((resolve, reject) => {
-    if (!isVideoFile(file)) return reject(new Error('Only MP4 and WebM videos are allowed.'));
-    if (file.size > 100 * 1024 * 1024) return reject(new Error('Video is too large (max 100 MB).'));
+    if (!isVideoFile(file)) return reject(new Error('Only MP4/WebM videos and MP3/WAV/OGG/M4A sounds are allowed.'));
+    if (file.size > 100 * 1024 * 1024) return reject(new Error('File is too large (max 100 MB).'));
     const xhr = new XMLHttpRequest();
     xhr.open('POST', 'api/upload-video');
     xhr.setRequestHeader('X-Admin-Key', adminKey);
@@ -1114,7 +1126,7 @@ async function addVideoFile(box, body, file, range) {
     });
     insertVideo(body, range, url);
     closePanels(box, null);
-    toast('Video added ✓');
+    toast(ProblemView.parseVideo(url)?.audio ? 'Sound added ✓' : 'Video added ✓');
   } catch (e) {
     if (e.message !== 'auth') videoMsg(pop, e.message, true);
   } finally {
@@ -1129,7 +1141,7 @@ function setupVideoPop(box, body) {
   pop.querySelector('.vp-file').addEventListener('click', () => {
     const f = document.createElement('input');
     f.type = 'file';
-    f.accept = 'video/mp4,video/webm,.mp4,.m4v,.webm';
+    f.accept = 'video/mp4,video/webm,.mp4,.m4v,.webm,audio/*,.mp3,.wav,.ogg,.m4a';
     f.addEventListener('change', () => { if (f.files[0]) addVideoFile(box, body, f.files[0], pop.range); });
     f.click();
   });
@@ -1137,7 +1149,7 @@ function setupVideoPop(box, body) {
     e.preventDefault();
     const v = ProblemView.parseVideo(input.value);
     if (!v) {
-      videoMsg(pop, 'That link is not a video file. Use a link that ends in .mp4 or .webm, or choose a file instead.', true);
+      videoMsg(pop, 'That link is not a video or sound file. Use a link that ends in .mp4, .webm, .mp3, .wav, .ogg or .m4a, or choose a file instead.', true);
       input.focus();
       return;
     }
@@ -1161,26 +1173,44 @@ function setupVideoPop(box, body) {
     addVideoFile(box, body, file, range);
   });
 }
-// video cards can't be typed into; they show a small preview and get a ✕ to remove them
+// video / sound cards can't be typed into; they show a small preview and get a ✕ to remove them.
+// A video card also gets a "Sound only" switch (data-sound="only": the picture is hidden on the paper).
 function prepareRich(body) {
   for (const fig of body.querySelectorAll('figure[data-video]')) {
     if (fig.contentEditable !== 'false') fig.contentEditable = 'false';
     const v = ProblemView.parseVideo(fig.getAttribute('data-video'));
+    if (v) fig.classList.toggle('is-audio', v.audio);
     if (v && !fig.querySelector('.vid-thumb')) {
-      const thumb = document.createElement('video');
-      thumb.className = 'vid-thumb';
-      thumb.muted = true;
-      thumb.preload = 'metadata';
-      thumb.src = v.src + '#t=0.5';   // a frame from the start, not a black screen
+      let thumb;
+      if (v.audio) {
+        thumb = document.createElement('span');
+        thumb.className = 'vid-thumb sound';
+        thumb.textContent = '♪';
+      } else {
+        thumb = document.createElement('video');
+        thumb.className = 'vid-thumb';
+        thumb.muted = true;
+        thumb.preload = 'metadata';
+        thumb.src = v.src + '#t=0.5';   // a frame from the start, not a black screen
+      }
       fig.prepend(thumb);
+    }
+    if (v && !v.audio && !fig.querySelector('.vid-sound')) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'vid-sound';
+      b.textContent = '♪ Sound only';
+      b.title = 'Hide the picture and only play the sound';
+      b.setAttribute('aria-pressed', String(fig.getAttribute('data-sound') === 'only'));
+      fig.appendChild(b);
     }
     if (!fig.querySelector('.vid-x')) {
       const x = document.createElement('button');
       x.type = 'button';
       x.className = 'vid-x';
       x.textContent = '✕';
-      x.title = 'Remove video';
-      x.setAttribute('aria-label', 'Remove video');
+      x.title = 'Remove';
+      x.setAttribute('aria-label', 'Remove');
       fig.appendChild(x);
     }
   }
@@ -1859,96 +1889,49 @@ drop.addEventListener('drop', (e) => {
   addTestFiles([...e.dataTransfer.files]);
 });
 
-/* ---------- made by (several authors) ---------- */
-const PERSON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1.2-3.6 4-5.2 7-5.2s5.8 1.6 7 5.2"/></svg>';
-
-// author = { name, avatar } (a plain name string also works)
-function addAuthor(author = '', focus = false) {
-  const a = author && typeof author === 'object' ? author : { name: author };
+/* ---------- credits: โจทย์โดย (f-authors) and ผู้ทาน (f-reviewers) ---------- */
+// person = { name, rank } (a plain name string also works); listId = 'f-authors' | 'f-reviewers'
+function addAuthor(listId, person = '', focus = false) {
+  const a = person && typeof person === 'object' ? person : { name: person };
+  const list = $(listId);
   const row = document.createElement('div');
   row.className = 'author-row';
-  row.dataset.avatar = a.avatar || '';
-
-  const av = document.createElement('div');
-  av.className = 'author-av';
-  const pick = document.createElement('button');
-  pick.type = 'button';
-  pick.className = 'av-pick';
-  const removeAv = document.createElement('button');
-  removeAv.type = 'button';
-  removeAv.className = 'av-remove';
-  removeAv.textContent = '✕';
-  removeAv.title = 'Remove picture';
-  av.append(pick, removeAv);
 
   const input = document.createElement('input');
+  input.className = 'a-name';
   input.maxLength = 100;
-  input.placeholder = 'Author name';
+  input.placeholder = 'Name';
   input.value = a.name || '';
-
-  // the circle shows the picture, else the first letter of the name, else a person icon
-  function drawAvatar() {
-    const url = row.dataset.avatar;
-    av.classList.toggle('has', !!url);
-    pick.title = url ? 'Change picture (or drop an image here)' : 'Add a profile picture (or drop an image here)';
-    pick.setAttribute('aria-label', pick.title);
-    if (url) {
-      pick.textContent = '';
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = '';
-      pick.appendChild(img);
-    } else {
-      const first = [...input.value.trim()][0];
-      if (first) pick.textContent = first.toUpperCase();
-      else pick.innerHTML = PERSON_ICON;
-    }
+  const rank = document.createElement('input');
+  rank.className = 'a-rank';
+  rank.maxLength = 100;
+  rank.placeholder = 'Rank (optional)';
+  rank.value = a.rank || '';
+  // Enter adds the next person
+  for (const box of [input, rank]) {
+    box.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addAuthor(listId, '', true); changed(); } });
   }
-  async function setPicture(file) {
-    av.classList.add('busy');
-    try {
-      row.dataset.avatar = await upload(file);
-      drawAvatar();
-      changed();
-    } catch (e) {
-      if (e.message !== 'auth') toast(e.message);
-    } finally { av.classList.remove('busy'); }
-  }
-  pick.addEventListener('click', () => {
-    const f = document.createElement('input');
-    f.type = 'file';
-    f.accept = 'image/png,image/jpeg,image/gif,image/webp';
-    f.addEventListener('change', () => { if (f.files[0]) setPicture(f.files[0]); });
-    f.click();
-  });
-  removeAv.addEventListener('click', () => { row.dataset.avatar = ''; drawAvatar(); changed(); pick.focus(); });
-  av.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); av.classList.add('drop'); });
-  av.addEventListener('dragleave', () => av.classList.remove('drop'));
-  av.addEventListener('drop', (e) => {
-    e.preventDefault(); e.stopPropagation();
-    av.classList.remove('drop');
-    const file = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/'));
-    if (file) setPicture(file);
-  });
-  input.addEventListener('input', () => { if (!row.dataset.avatar) drawAvatar(); });
-  drawAvatar();
-  // Enter adds the next author
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addAuthor('', true); changed(); } });
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'danger';
   remove.textContent = '✕';
-  remove.title = 'Remove this author';
+  remove.title = 'Remove this person';
   remove.addEventListener('click', () => {
     row.remove();
-    if (!$('f-authors').children.length) addAuthor();
+    if (!list.children.length) addAuthor(listId);
     changed();
   });
-  row.append(av, input, remove);
-  $('f-authors').appendChild(row);
+  row.append(input, rank, remove);
+  list.appendChild(row);
   if (focus) input.focus();
 }
-$('add-author').addEventListener('click', () => { addAuthor('', true); changed(); });
+function readPeople(listId) {
+  return [...$(listId).querySelectorAll('.author-row')]
+    .map((r) => ({ name: r.querySelector('.a-name').value.trim(), rank: r.querySelector('.a-rank').value.trim() }))
+    .filter((a) => a.name);
+}
+$('add-author').addEventListener('click', () => { addAuthor('f-authors', '', true); changed(); });
+$('add-reviewer').addEventListener('click', () => { addAuthor('f-reviewers', '', true); changed(); });
 
 /* ---------- solo / co-op ---------- */
 let mode = 'solo';
@@ -2685,9 +2668,8 @@ function collect() {
     number: $('f-number').value.trim(),
     name: $('f-name').value.trim(),
     difficulty: level,
-    madeBy: [...$('f-authors').querySelectorAll('.author-row')]
-      .map((r) => ({ name: r.querySelector('input').value.trim(), avatar: r.dataset.avatar || '' }))
-      .filter((a) => a.name),
+    madeBy: readPeople('f-authors'),
+    reviewedBy: readPeople('f-reviewers'),
     timeLimit: Number($('f-time').value) || 1,
     memoryLimit: Number($('f-memory').value) || 256,
     statement: html('statement'), input: html('input'), output: html('output'), constraints: html('constraints'),
@@ -2725,9 +2707,11 @@ function fill(p) {
     (p[`p${n}Samples`] || []).forEach((x) => addSample(x, false, `p${n}-samples`));
   }
   refreshCodeBoxes();
-  $('f-authors').textContent = '';
-  const authors = ProblemView.authorList(p.madeBy);
-  (authors.length ? authors : ['']).forEach((a) => addAuthor(a));
+  for (const [listId, field] of [['f-authors', 'madeBy'], ['f-reviewers', 'reviewedBy']]) {
+    $(listId).textContent = '';
+    const people = ProblemView.authorList(p[field]);
+    (people.length ? people : ['']).forEach((a) => addAuthor(listId, a));
+  }
   $('f-time').value = p.timeLimit ?? 1;
   $('f-memory').value = p.memoryLimit ?? 256;
   for (const f of ['statement', 'input', 'output', 'constraints', 'hint', 'p1Task', 'p2Task', 'p1Output', 'p2Output', 'p1Hint', 'p2Hint']) {

@@ -1,9 +1,9 @@
 {
-  "loader": "283c562620beca1db11e3da0d9c35fa8.loader.js",
-  "data": "53c9e28b8cc148826e6ac7d2b3a7a10d.data",
-  "framework": "365416c45aa3274f5cb5be957a1ac7ba.framework.js",
-  "code": "1cf165aa27235fb9ed6b9371ead21da6.wasm",
+  "loader": "1ea9cc941bd7fd7f8cb0bfe39868535a.loader.js",
+  "data": "3652823005aa26f5f6a26e9ab7b37909.data",
+  "framework": "4c9de060e6b1aebe70a0a55de60e4ab6.framework.js",
+  "code": "7d9a0dd97837f32caa023d24953933b4.wasm",
   "productName": "BJKIT",
   "productVersion": "0.1.0",
-  "builtAt": "2026-11-24T00:26:02"
+  "builtAt": "2026-11-26T12:42:26"
 }
